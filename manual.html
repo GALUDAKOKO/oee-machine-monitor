@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คู่มือการใช้งาน — OEE Machine Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1a3a5c;--secondary:#e07b00;--run:#10b981;--stop:#ef4444;--setup:#f59e0b;--done:#3b82f6;--bg:#f0f4f8;--card:#fff;--text:#1a202c;--muted:#718096}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:16px;line-height:1.7;padding-bottom:60px}
+.app-header{background:var(--primary);color:#fff;padding:16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:16px;cursor:pointer;text-decoration:none;display:inline-block;font-family:'Sarabun',sans-serif;font-weight:700}
+.header-title h1{font-size:18px;font-weight:800}
+.header-title p{font-size:12px;opacity:.8}
+/* TOC */
+.toc{background:#fff;margin:12px;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.toc-title{font-size:14px;font-weight:800;color:var(--primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.toc a{display:block;padding:6px 0;color:var(--primary);text-decoration:none;font-size:14px;border-bottom:1px solid #f0f0f0;font-weight:600}
+.toc a:last-child{border:none}
+.toc a:active{color:var(--secondary)}
+/* Section */
+.section{background:#fff;margin:10px 12px;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:3px solid var(--bg)}
+.section-icon{font-size:26px}
+.section-title{font-size:18px;font-weight:800;color:var(--primary)}
+.section-sub{font-size:12px;color:var(--muted)}
+/* Content */
+p{margin-bottom:10px;font-size:15px}
+strong{color:var(--primary)}
+.highlight-box{border-radius:10px;padding:14px;margin:12px 0;font-size:14px;line-height:1.8}
+.box-blue{background:#eff6ff;border-left:4px solid #3b82f6}
+.box-green{background:#f0fdf4;border-left:4px solid #10b981}
+.box-yellow{background:#fefce8;border-left:4px solid #f59e0b}
+.box-red{background:#fef2f2;border-left:4px solid #ef4444}
+.box-gray{background:#f9fafb;border-left:4px solid #6b7280}
+/* Step flow */
+.step-list{counter-reset:step}
+.step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.step:last-child{border:none}
+.step-num{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-body{flex:1}
+.step-title{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:2px}
+.step-desc{font-size:13px;color:var(--muted)}
+/* OEE Calc */
+.formula-box{background:#0f172a;color:#00ff88;border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:14px;margin:10px 0;line-height:2}
+.formula-label{color:#94a3b8;font-size:12px}
+/* State cards */
+.state-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.state-card{border-radius:10px;padding:12px}
+.state-name{font-size:15px;font-weight:800;margin-bottom:4px}
+.state-desc{font-size:13px;line-height:1.5}
+.state-example{font-size:12px;color:#6b7280;margin-top:4px;font-style:italic}
+/* Table */
+.info-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.info-table th{background:var(--primary);color:#fff;padding:8px 10px;text-align:left}
+.info-table td{border:1px solid #e5e7eb;padding:7px 10px;vertical-align:top}
+.info-table tr:nth-child(even) td{background:#f8fafc}
+/* FAQ */
+.faq-item{margin-bottom:14px;border-bottom:1px solid #f0f0f0;padding-bottom:14px}
+.faq-q{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.faq-a{font-size:14px;color:var(--muted);line-height:1.7}
+/* KPI gauge */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.kpi-item{background:var(--bg);border-radius:10px;padding:12px;text-align:center}
+.kpi-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.kpi-val{font-size:20px;font-weight:800;margin:4px 0}
+.kpi-desc{font-size:11px;color:var(--muted)}
+.good{color:#10b981}.warn{color:#f59e0b}.bad{color:#ef4444}
+/* Progress bar */
+.bar-wrap{background:#e5e7eb;border-radius:999px;height:10px;margin:6px 0;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .5s}
+/* anchor offset for sticky header */
+.anchor{display:block;position:relative;top:-70px;visibility:hidden}
+@media(min-width:768px){body{max-width:700px;margin:0 auto}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <a href="index.html" class="back-btn">← หน้าหลัก</a>
+  <div class="header-title">
+    <h1>📖 คู่มือการใช้งาน</h1>
+    <p>OEE Machine Monitor — Phase 0</p>
+  </div>
+</div>
+
+<!-- Table of Contents -->
+<div class="toc">
+  <div class="toc-title">📑 สารบัญ</div>
+  <a href="#s1">1. ระบบนี้คืออะไร และทำไมต้องใช้</a>
+  <a href="#s2">2. OEE คืออะไร — อธิบายแบบเข้าใจง่าย</a>
+  <a href="#s3">3. Work Sampling — วิธีจับเวลาแบบไม่รบกวน</a>
+  <a href="#s4">4. วิธีใช้ Form บันทึก (Type A / B / C)</a>
+  <a href="#s5">5. การตีความผลลัพธ์ OEE</a>
+  <a href="#s6">6. Performance วัดเมื่อไหร่ได้?</a>
+  <a href="#s7">7. คำถามที่พบบ่อย (FAQ)</a>
+</div>
+
+<!-- Section 1 -->
+<span class="anchor" id="s1"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🏭</span>
+    <div>
+      <div class="section-title">1. ระบบนี้คืออะไร</div>
+      <div class="section-sub">และทำไมต้องใช้</div>
+    </div>
+  </div>
+
+  <div class="highlight-box box-blue">
+    <strong>ปัญหาของโรงงานกลึงทั่วไป:</strong><br>
+    ไม่รู้ว่าเครื่องจักรทำงานจริงกี่ชั่วโมงต่อวัน · ไม่รู้เวลาที่หายไปกับการ Setup · ไม่รู้ว่าของเสียมาจากไหน · ไม่มีข้อมูลสำหรับวางแผนรับงาน
+  </div>
+
+  <p>ระบบนี้ช่วยให้โรงงานเริ่ม <strong>เก็บข้อมูลเวลาจริง</strong> โดยไม่ต้องซื้ออุปกรณ์แพง ใช้แค่ iPad / มือถือ เปิด browser แล้วกดปุ่มตามขั้นตอน</p>
+
+  <div class="highlight-box box-green">
+    <strong>ข้อมูลที่จะได้:</strong><br>
+    ✅ เวลา Setup จริงต่อ Job<br>
+    ✅ เวลาที่เครื่องทำงานจริง<br>
+    ✅ เวลาที่เครื่องหยุด และสาเหตุ<br>
+    ✅ % ของดีต่อ Job<br>
+    ✅ Availability ของเครื่องแต่ละตัว
+  </div>
+
+  <p>เมื่อมีข้อมูลแล้ว จะเห็นว่า <strong>เวลาหายไปที่ไหน</strong> และจะแก้ได้ตรงจุด</p>
+</div>
+
+<!-- Section 2 -->
+<span class="anchor" id="s2"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📊</span>
+    <div>
+      <div class="section-title">2. OEE คืออะไร</div>
+      <div class="section-sub">Overall Equipment Effectiveness</div>
+    </div>
+  </div>
+
+  <p>OEE วัดว่า "เครื่องจักรใช้งานได้ดีแค่ไหน" เทียบกับที่ควรจะเป็น คิดเป็น % จาก 3 ตัวคูณกัน:</p>
+
+  <div class="formula-box">
+<span class="formula-label">สูตร OEE:</span>
+OEE = Availability × Performance × Quality
+      (ทั้ง 3 ตัว หน่วยเป็น %)
+
+<span class="formula-label">ตัวอย่าง:</span>
+Availability  = 80%   (เครื่องทำงาน 80% ของเวลา)
+Performance   = 90%   (เร็ว 90% ของ standard)
+Quality       = 95%   (ของดี 95%)
+
+OEE = 0.80 × 0.90 × 0.95 = <strong style="color:#fbbf24">68.4%</strong>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-item">
+      <div class="kpi-label">World Class OEE</div>
+      <div class="kpi-val good">85%+</div>
+      <div class="kpi-desc">มาตรฐานโลก</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">ทั่วไป</div>
+      <div class="kpi-val warn">40-60%</div>
+      <div class="kpi-desc">โรงงานทั่วไป</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">ต้องปรับปรุง</div>
+      <div class="kpi-val bad">&lt;40%</div>
+      <div class="kpi-desc">มีปัญหาใหญ่</div>
+    </div>
+  </div>
+
+  <p style="font-size:14px;color:var(--muted)"><strong>หมายเหตุ:</strong> OEE 40-60% ไม่ได้แปลว่าแย่ — แปลว่า ยังมีโอกาสปรับปรุงได้มาก และการรู้ตัวเลขนี้คือก้าวแรกที่สำคัญที่สุด</p>
+
+  <table class="info-table">
+    <tr><th>ตัวชี้วัด</th><th>วัดอะไร</th><th>Loss ที่ตรวจจับ</th></tr>
+    <tr><td><strong>Availability</strong></td><td>เครื่องทำงานได้กี่ % ของเวลาแผน</td><td>Breakdown, Setup, รอ material</td></tr>
+    <tr><td><strong>Performance</strong></td><td>เร็วแค่ไหนเทียบ standard</td><td>เครื่องช้า, หยุดสั้นๆ บ่อย</td></tr>
+    <tr><td><strong>Quality</strong></td><td>ของดีกี่ % ของทั้งหมด</td><td>ของเสีย, Rework</td></tr>
+  </table>
+</div>
+
+<!-- Section 3 -->
+<span class="anchor" id="s3"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🎲</span>
+    <div>
+      <div class="section-title">3. Work Sampling</div>
+      <div class="section-sub">วิธีจับเวลาแบบไม่รบกวนพนักงาน</div>
+    </div>
+  </div>
+
+  <div class="highlight-box box-blue">
+    <strong>หลักการ:</strong> แทนที่จะยืนจับเวลาติดๆ ซึ่งพนักงานจะรู้สึกถูกจับตา — ให้เดินผ่านทุก 15 นาที ชำเลืองดู 1 วินาที แล้วกดปุ่มตามที่เห็น
+  </div>
+
+  <p><strong>Flow การใช้งาน — ทำตามนี้ทุกรอบ:</strong></p>
+
+  <div class="step-list">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">ตั้งนาฬิกาปลุกทุก 15 นาที</div>
+        <div class="step-desc">ใช้นาฬิกาโทรศัพท์ตั้ง repeat alarm ทุก 15 นาที ตลอดวันทำงาน</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">เมื่อปลุก → เดินไปที่เครื่อง</div>
+        <div class="step-desc">ไม่ต้องรีบ เดินปกติ ไม่ต้องแจ้งพนักงาน</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">มองเครื่อง 1-2 วินาที → กดปุ่ม</div>
+        <div class="step-desc">กด <strong>ปุ่มเดียวเท่านั้น</strong> ที่ตรงกับสิ่งที่เห็น ณ ขณะนั้น</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">เดินออก ทำงานต่อ</div>
+        <div class="step-desc">ไม่ต้องคุย ไม่ต้องอธิบาย ทำซ้ำรอบถัดไปเมื่อปลุก</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">กดผิด → กด "↩ Undo" ทันที</div>
+        <div class="step-desc">แก้ได้เฉพาะการกดล่าสุด (1 ครั้ง) ถ้าเลยไปแล้วให้ทำต่อตามปกติ ค่าเฉลี่ยจะยังใกล้เคียง</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:12px"><strong>สถานะ 4 แบบที่กดได้:</strong></p>
+  <div class="state-grid">
+    <div class="state-card" style="background:#d1fae5">
+      <div class="state-name" style="color:#065f46">▶ RUN</div>
+      <div class="state-desc">เครื่องกำลังตัด กลึง หรือกัดอยู่จริง</div>
+      <div class="state-example">มีเสียง + เศษโลหะ + แกนหมุน</div>
+    </div>
+    <div class="state-card" style="background:#fef3c7">
+      <div class="state-name" style="color:#92400e">🔧 SETUP</div>
+      <div class="state-desc">กำลังตั้งมีด ตั้งศูนย์ จับชิ้นงานใหม่</div>
+      <div class="state-example">มีคนอยู่ที่เครื่อง แต่ยังไม่ตัด</div>
+    </div>
+    <div class="state-card" style="background:#f3f4f6">
+      <div class="state-name" style="color:#374151">⬤ IDLE</div>
+      <div class="state-desc">เครื่องว่าง ไม่มีคนทำงาน</div>
+      <div class="state-example">รองาน รอ material รอพนักงาน</div>
+    </div>
+    <div class="state-card" style="background:#fee2e2">
+      <div class="state-name" style="color:#991b1b">⛔ DOWN</div>
+      <div class="state-desc">เครื่องเสีย หยุดผิดแผน</div>
+      <div class="state-example">ซ่อม รอช่าง มีป้าย "เสีย"</div>
+    </div>
+  </div>
+
+  <div class="highlight-box box-yellow" style="margin-top:12px">
+    <strong>⚠️ กฎสำคัญ:</strong><br>
+    • กด <strong>แค่ 1 ครั้ง</strong> ต่อรอบ 15 นาที ต่อเครื่อง<br>
+    • ถ้าไม่แน่ใจ → กด IDLE ดีกว่าเดา<br>
+    • ต้องไปเห็นเครื่องจริงก่อนค่อยกด อย่ากดจากที่นั่ง<br>
+    • ทำต่อเนื่อง ≥ 30 observations = ผลน่าเชื่อถือ (ประมาณ 7.5 ชั่วโมง)
+  </div>
+</div>
+
+<!-- Section 4 -->
+<span class="anchor" id="s4"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📋</span>
+    <div>
+      <div class="section-title">4. วิธีใช้ Form บันทึก</div>
+      <div class="section-sub">Type A / B / C</div>
+    </div>
+  </div>
+
+  <!-- เลือก Type -->
+  <div class="highlight-box box-gray" style="margin-bottom:14px">
+    <strong>เลือก Type ตามลักษณะงาน:</strong><br>
+    <strong>Type A</strong> = งานต่างกันทุก Job (ไม่ซ้ำ)<br>
+    <strong>Type B</strong> = งานเดิมกลับมาซ้ำ (มี Part No เดิม)<br>
+    <strong>Type C</strong> = ทำทีละ 1 ชิ้น ชิ้นงานซับซ้อน ใช้เวลานาน
+  </div>
+
+  <!-- Flow บันทึก -->
+  <p><strong>Flow การกดปุ่ม (เหมือนกันทุก Type):</strong></p>
+  <div class="step-list">
+    <div class="step">
+      <div class="step-num" style="background:#f59e0b">1</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#92400e">🔧 กด "เริ่ม Setup"</div>
+        <div class="step-desc">กดทันทีที่พนักงานเริ่มตั้งมีด ตั้งศูนย์ หรือจับชิ้นงานเข้าเครื่อง<br>ระบบบันทึกเวลา T0</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#10b981">2</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#065f46">▶ กด "เริ่ม Run"</div>
+        <div class="step-desc">กดทันทีที่เครื่องเริ่มตัดชิ้นงาน (มีเสียงเครื่อง + เศษโลหะ)<br>ระบบบันทึกเวลา T1 และคำนวณ Setup Time = T1 - T0</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#ef4444">3</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#991b1b">⏸ กด "หยุด" (ถ้ามีหยุดกลางทาง)</div>
+        <div class="step-desc">กดถ้าเครื่องหยุดระหว่าง Run เช่น เปลี่ยนมีด รอ material เครื่องขัดข้อง<br>ระบบจะถาม "สาเหตุที่หยุด" — เลือกให้ตรง</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#8b5cf6">4</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#5b21b6">⏯ กด "กลับมา Run" (หลังหยุด)</div>
+        <div class="step-desc">กดทันทีที่เครื่องเริ่มตัดใหม่ ระบบคำนวณ Downtime อัตโนมัติ<br>กด "หยุด" และ "กลับมา" ซ้ำได้ถ้ามีหยุดหลายครั้ง</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#3b82f6">5</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#1d4ed8">✅ กด "เสร็จแล้ว (Done)"</div>
+        <div class="step-desc">กดทันทีที่พนักงานเอาชิ้นงานออกจากเครื่อง<br>ระบบบันทึก T3 และคำนวณ OEE ให้ทันที</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">กรอกจำนวน + กด "บันทึก"</div>
+        <div class="step-desc">กรอกจำนวนชิ้นที่ผลิตได้และชิ้นที่เสีย → กด "บันทึก"<br>ข้อมูลจะถูกเก็บไว้ใน browser</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#10b981">7</div>
+      <div class="step-body">
+        <div class="step-title" style="color:#065f46">🔄 กด "เริ่ม Job ใหม่" (ถ้ามี Job ต่อไป)</div>
+        <div class="step-desc">Form จะ reset กลับเป็น IDLE แต่เก็บชื่อผู้สังเกตและเครื่องจักรไว้ ไม่ต้องกรอกใหม่</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight-box box-yellow" style="margin-top:14px">
+    <strong>⚠️ สิ่งที่ห้ามทำ:</strong><br>
+    ❌ อย่ากด "เริ่ม Run" ก่อน "เริ่ม Setup" (ระบบจะ lock ปุ่มให้แล้ว)<br>
+    ❌ อย่าลืมกด "Done" — ถ้าลืมข้อมูลจะไม่สมบูรณ์<br>
+    ❌ อย่ากด "หยุด" แล้วไม่กด "กลับมา" — Downtime จะนับต่อไปเรื่อยๆ
+  </div>
+</div>
+
+<!-- Section 5 -->
+<span class="anchor" id="s5"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">🔍</span>
+    <div>
+      <div class="section-title">5. ตีความผลลัพธ์ OEE</div>
+      <div class="section-sub">ตัวเลขหมายความว่าอะไร</div>
+    </div>
+  </div>
+
+  <table class="info-table">
+    <tr><th>ตัวชี้วัด</th><th style="color:#10b981">ดี</th><th style="color:#f59e0b">พอใช้</th><th style="color:#ef4444">ต้องแก้</th></tr>
+    <tr><td><strong>Availability</strong></td><td>&gt;70%</td><td>50-70%</td><td>&lt;50%</td></tr>
+    <tr><td><strong>Performance</strong></td><td>&gt;85%</td><td>65-85%</td><td>&lt;65%</td></tr>
+    <tr><td><strong>Quality</strong></td><td>&gt;95%</td><td>85-95%</td><td>&lt;85%</td></tr>
+    <tr><td><strong>OEE รวม</strong></td><td>&gt;65%</td><td>40-65%</td><td>&lt;40%</td></tr>
+    <tr><td><strong>Setup Ratio</strong></td><td>&lt;15%</td><td>15-25%</td><td>&gt;25%</td></tr>
+  </table>
+
+  <p style="margin-top:12px"><strong>การแปลผล Setup Ratio:</strong></p>
+  <div class="highlight-box box-yellow">
+    Setup Ratio = เวลา Setup ÷ เวลาทั้งหมดของ Job<br><br>
+    ถ้า Setup Ratio <strong>&gt;25%</strong> = <strong>ต้องลด Setup Time</strong><br>
+    วิธีแก้: เตรียม tool ล่วงหน้า, ทำ SMED, จัดลำดับงานให้ใช้มีดเดิมได้ต่อเนื่อง
+  </div>
+
+  <p><strong>สาเหตุที่ Availability ต่ำที่พบบ่อย:</strong></p>
+  <ul style="list-style:none;padding:0">
+    <li style="padding:6px 0;border-bottom:1px solid #f0f0f0">⏳ <strong>รอ material</strong> → แก้: ปรับระบบเบิกของล่วงหน้า</li>
+    <li style="padding:6px 0;border-bottom:1px solid #f0f0f0">🔧 <strong>Setup นาน</strong> → แก้: เตรียมมีด จัดลำดับงาน</li>
+    <li style="padding:6px 0;border-bottom:1px solid #f0f0f0">⚙️ <strong>เครื่องเสีย</strong> → แก้: วางแผน PM ก่อนเสีย</li>
+    <li style="padding:6px 0">👤 <strong>รอพนักงาน</strong> → แก้: ปรับ workflow การรับงาน</li>
+  </ul>
+</div>
+
+<!-- Section 6 -->
+<span class="anchor" id="s6"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">📐</span>
+    <div>
+      <div class="section-title">6. Performance วัดเมื่อไหร่ได้?</div>
+      <div class="section-sub">ต้องมี Standard Cycle Time ก่อน</div>
+    </div>
+  </div>
+
+  <div class="highlight-box box-blue">
+    <strong>Performance = (Standard CT × จำนวนชิ้น) ÷ Run Time × 100%</strong><br><br>
+    Standard CT = เวลาที่ควรใช้ต่อชิ้น (นาที/ชิ้น)<br>
+    ถ้าไม่มี Standard CT → คำนวณ Performance ไม่ได้
+  </div>
+
+  <p><strong>ลำดับการวัด (แนะนำ):</strong></p>
+  <div class="step-list">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">สัปดาห์ที่ 1-2: วัด Type A ก่อน ไม่ต้องใส่ Est CT</div>
+        <div class="step-desc">วัด Availability + Quality เท่านั้น ไม่มี Performance ก็ไม่เป็นไร ได้ baseline ของเวลา Run จริง</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Export CSV → ดูตาราง Avg CT ใน index</div>
+        <div class="step-desc">ระบบคำนวณ avg Run Time ต่อชิ้นจาก history ให้อัตโนมัติ → นั่นคือ Standard CT เริ่มต้น</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">สัปดาห์ที่ 3+: ใส่ Standard CT ใน Type B</div>
+        <div class="step-desc">เมื่อ Part No เดิมกลับมา → ใช้ค่า Avg CT จาก step 2 → Performance คำนวณได้แล้ว</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">ปรับ Standard CT ทุก 1 เดือน</div>
+        <div class="step-desc">เมื่อมีข้อมูล ≥ 5 batch ของ Part เดิม → ใช้ค่าเฉลี่ยที่แม่นขึ้น → Performance แม่นตาม</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 7 -->
+<span class="anchor" id="s7"></span>
+<div class="section">
+  <div class="section-header">
+    <span class="section-icon">❓</span>
+    <div>
+      <div class="section-title">7. คำถามที่พบบ่อย</div>
+      <div class="section-sub">FAQ</div>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: ลืมกด "เริ่ม Run" ทันที กด late ไป 5 นาที ทำยังไง?</div>
+    <div class="faq-a">A: กดไปตามเวลาจริงที่กด ข้อมูลจะ off ไปนิดหน่อย แต่บันทึก remarks ไว้ว่า "gd late 5 min" เพื่อให้รู้เมื่อดูย้อนหลัง ไม่จำเป็นต้อง perfect ทุก Job</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: พนักงานย้ายเครื่องกลางงาน บันทึกยังไง?</div>
+    <div class="faq-a">A: กด "หยุด" ที่เครื่องเดิม เลือกสาเหตุ "อื่นๆ" แล้ว remarks ว่า "ย้ายเครื่อง" จากนั้นบันทึก Job นี้ว่าเสร็จที่เครื่องเดิม (Done) แล้วเปิด form ใหม่สำหรับเครื่องที่ย้ายไป</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: 1 Job ผลิตได้หลายชิ้น กรอกอย่างไร?</div>
+    <div class="faq-a">A: กรอก Total Qty ที่ผลิตได้ทั้ง batch ใน "จำนวนผลิต" และ Total Reject ใน "จำนวนเสีย" ระบบคำนวณ Quality Rate อัตโนมัติ</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: ข้อมูลจะหายไหมถ้าปิด browser?</div>
+    <div class="faq-a">A: ข้อมูลที่กด "บันทึก" แล้วจะถูกเก็บใน browser memory (localStorage) ข้อมูลจะอยู่ตราบที่ไม่ได้ล้าง browser data ให้ Export CSV เป็นประจำทุกวันเพื่อสำรองข้อมูล</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: ใช้กี่คนวัดพร้อมกัน?</div>
+    <div class="faq-a">A: 1 คนต่อ 2 เครื่องได้สบาย — ใช้ Work Sampling เดินสลับดูทุก 15 นาที และกด Form บันทึก OEE เมื่อ Job เสร็จ</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q: Availability 45% แปลว่าอะไร?</div>
+    <div class="faq-a">A: แปลว่าจาก 8 ชั่วโมงทำงาน เครื่องทำงานจริงแค่ 3.6 ชั่วโมง ที่เหลือ 4.4 ชั่วโมงหายไปกับ Setup + Downtime + Idle ซึ่งเป็นโอกาสให้ปรับปรุงได้มาก</div>
+  </div>
+
+  <div class="faq-item" style="border:none">
+    <div class="faq-q">Q: ต้องวัดนานแค่ไหนถึงจะมีข้อมูลพอ?</div>
+    <div class="faq-a">A: Work Sampling ควรทำ 3 วันต่อเนื่อง (≥90 observations) จึงจะเชื่อถือได้ สำหรับ Form บันทึก OEE ควรมีอย่างน้อย 10 Jobs ต่อเครื่องก่อนจะ present ผล</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="margin:16px 12px;background:var(--primary);border-radius:12px;padding:16px;text-align:center;color:#fff">
+  <div style="font-size:18px;font-weight:800;margin-bottom:4px">⚙️ Machine Monitor OEE</div>
+  <div style="font-size:13px;opacity:.8">Phase 0 — Job Tracking & OEE Baseline</div>
+  <a href="index.html" style="display:inline-block;margin-top:12px;background:rgba(255,255,255,.2);color:#fff;text-decoration:none;padding:10px 24px;border-radius:20px;font-weight:700;font-size:14px">← กลับหน้าหลัก</a>
+</div>
+
+</body>
+</html>

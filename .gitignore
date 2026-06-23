@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Exports (อย่า commit ไฟล์ CSV/export)
+*.csv
+OEE_Dashboard_*.html
+
+# Logs
+*.log

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Machine Monitor — OEE Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1a3a5c;--secondary:#e07b00;--run:#10b981;--stop:#ef4444;--bg:#f0f4f8;--card:#fff;--text:#1a202c;--muted:#718096}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:16px;padding-bottom:40px}
+.app-header{background:var(--primary);color:#fff;padding:20px 16px 16px;text-align:center}
+.app-header h1{font-size:22px;font-weight:800;letter-spacing:1px}
+.app-header p{font-size:13px;opacity:.8;margin-top:4px}
+.date-bar{background:#e07b00;color:#fff;text-align:center;padding:8px;font-size:14px;font-weight:600}
+.card{background:var(--card);margin:10px 12px;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card-title{font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--bg)}
+/* Form Type Cards */
+.form-cards{display:flex;flex-direction:column;gap:10px;margin:10px 12px}
+.form-card{border:none;border-radius:14px;padding:18px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;font-family:'Sarabun',sans-serif;touch-action:manipulation;transition:transform .15s;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.form-card:active{transform:scale(.97)}
+.form-card .fc-icon{font-size:32px;flex-shrink:0}
+.form-card .fc-body{flex:1}
+.form-card .fc-title{font-size:18px;font-weight:800;color:#fff}
+.form-card .fc-sub{font-size:13px;color:rgba(255,255,255,.85);margin-top:2px}
+.form-card .fc-badge{font-size:11px;font-weight:700;background:rgba(255,255,255,.25);color:#fff;padding:2px 10px;border-radius:20px;display:inline-block;margin-top:6px}
+.fc-a{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.fc-b{background:linear-gradient(135deg,#10b981,#059669)}
+.fc-c{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+/* Summary Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat-item{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.stat-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.stat-value{font-size:20px;font-weight:800;color:var(--primary);margin:2px 0}
+.stat-sub{font-size:10px;color:var(--muted)}
+/* Today's Records */
+.records-table{width:100%;font-size:12px;border-collapse:collapse}
+.records-table th{background:var(--primary);color:#fff;padding:7px 8px;text-align:left;white-space:nowrap}
+.records-table td{border:1px solid #e5e7eb;padding:5px 7px;white-space:nowrap}
+.records-table tr:nth-child(even) td{background:#f8fafc}
+.badge-a{background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
+.badge-b{background:#d1fae5;color:#065f46;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
+.badge-c{background:#dbeafe;color:#1e40af;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
+.export-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 12px}
+.exp-btn{border:none;border-radius:12px;padding:14px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.btn-export-all{background:var(--secondary);color:#fff}
+.btn-clear-all{background:#fff;color:var(--stop);border:2px solid var(--stop)}
+/* Machine Status */
+.machine-status{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.mach-card{border-radius:10px;padding:14px;text-align:center}
+.mach-name{font-size:14px;font-weight:800;margin-bottom:4px}
+.mach-stat{font-size:12px}
+.mach-avail{font-size:20px;font-weight:800;margin:4px 0}
+/* Work Sampling Quick Tally */
+.tally-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tally-btn{border:none;border-radius:10px;padding:14px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;transition:transform .1s}
+.tally-btn:active{transform:scale(.93)}
+.t-run{background:#10b981;color:#fff}.t-setup{background:#f59e0b;color:#fff}
+.t-idle{background:#6b7280;color:#fff}.t-down{background:#ef4444;color:#fff}
+.tally-count{font-size:20px;font-weight:800;display:block;margin-top:3px}
+.ws-result{background:#f8fafc;border-radius:8px;padding:10px;margin-top:10px;font-size:13px}
+.ws-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e5e7eb}
+.ws-row:last-child{border:none}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#00ff88;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+@media(min-width:768px){body{max-width:600px;margin:0 auto}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>⚙️ Machine Monitor</h1>
+  <p>OEE Data Collection — Phase 0</p>
+</div>
+<div class="date-bar" id="dateBar">-</div>
+
+<!-- Form Type Selection -->
+<div style="margin:10px 12px 4px;display:flex;justify-content:space-between;align-items:center">
+  <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">เลือกประเภทงาน</span>
+  <div style="display:flex;gap:8px">
+    <a href="dashboard.html" style="font-size:13px;font-weight:700;color:#fff;text-decoration:none;background:#8b5cf6;padding:6px 12px;border-radius:20px">📊 Dashboard</a>
+    <a href="manual.html" style="font-size:13px;font-weight:700;color:#3b82f6;text-decoration:none;background:#eff6ff;padding:6px 12px;border-radius:20px">📖 คู่มือ</a>
+  </div>
+</div>
+<div class="form-cards">
+  <a href="form_a.html" class="form-card fc-a" style="text-decoration:none">
+    <span class="fc-icon">🔧</span>
+    <div class="fc-body">
+      <div class="fc-title">Type A — Job Shop</div>
+      <div class="fc-sub">งานต่างกันทุกวัน ต้อง Setup บ่อย</div>
+      <span class="fc-badge">วัด: Availability + Setup Ratio + Quality</span>
+    </div>
+    <span style="color:rgba(255,255,255,.7);font-size:20px">›</span>
+  </a>
+  <a href="form_b.html" class="form-card fc-b" style="text-decoration:none">
+    <span class="fc-icon">🔄</span>
+    <div class="fc-body">
+      <div class="fc-title">Type B — Repeat Order</div>
+      <div class="fc-sub">งานเดิมกลับมา มี Standard CT</div>
+      <span class="fc-badge">วัด: Full OEE = A × P × Q + Trend</span>
+    </div>
+    <span style="color:rgba(255,255,255,.7);font-size:20px">›</span>
+  </a>
+  <a href="form_c.html" class="form-card fc-c" style="text-decoration:none">
+    <span class="fc-icon">🎯</span>
+    <div class="fc-body">
+      <div class="fc-title">Type C — Single Piece</div>
+      <div class="fc-sub">1 ชิ้นต่องาน ชิ้นงานซับซ้อน</div>
+      <span class="fc-badge">วัด: Setup Ratio + Cycle Time + Pass/Fail</span>
+    </div>
+    <span style="color:rgba(255,255,255,.7);font-size:20px">›</span>
+  </a>
+</div>
+
+<!-- Today Summary -->
+<div class="card">
+  <div class="card-title">📊 สรุปวันนี้</div>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-label">Total Jobs</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-sub">Records</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Avg Availability</div>
+      <div class="stat-value" id="statAvail">-</div>
+      <div class="stat-sub">%</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Avg Quality</div>
+      <div class="stat-value" id="statQual">-</div>
+      <div class="stat-sub">%</div>
+    </div>
+  </div>
+  <!-- Machine breakdown -->
+  <div class="machine-status" style="margin-top:12px" id="machineStatus">
+    <div class="mach-card" style="background:#f0fdf4">
+      <div class="mach-name">🏭 M1</div>
+      <div class="mach-avail" id="m1Avail" style="color:#10b981">-</div>
+      <div class="mach-stat"><span id="m1Jobs">0</span> jobs | Avail%</div>
+    </div>
+    <div class="mach-card" style="background:#eff6ff">
+      <div class="mach-name">🏭 M2</div>
+      <div class="mach-avail" id="m2Avail" style="color:#3b82f6">-</div>
+      <div class="mach-stat"><span id="m2Jobs">0</span> jobs | Avail%</div>
+    </div>
+  </div>
+</div>
+
+<!-- Today's All Records -->
+<div class="card">
+  <div class="card-title">🗂 บันทึกทั้งหมดวันนี้ (<span id="recCount">0</span> records)</div>
+  <div style="overflow-x:auto">
+    <table class="records-table">
+      <thead><tr><th>#</th><th>Type</th><th>เวลา</th><th>เครื่อง</th><th>Job</th><th>Avail%</th><th>Quality</th><th>OEE%</th></tr></thead>
+      <tbody id="allRecordsBody"><tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:12px">ยังไม่มีข้อมูล</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Filter + Export -->
+<div class="card">
+  <div class="card-title">🔽 กรอง + Export</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">เครื่อง</label>
+      <select id="filterMachine" onchange="loadAllSummary()" style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:8px;font-family:'Sarabun',sans-serif;font-size:14px">
+        <option value="">ทั้งหมด</option>
+        <option value="M1">M1</option>
+        <option value="M2">M2</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">Type</label>
+      <select id="filterType" onchange="loadAllSummary()" style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:8px;font-family:'Sarabun',sans-serif;font-size:14px">
+        <option value="">ทั้งหมด</option>
+        <option value="A">A — Job Shop</option>
+        <option value="B">B — Repeat</option>
+        <option value="C">C — Single</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">ข้อมูล OEE</label>
+      <select id="filterOEE" onchange="loadAllSummary()" style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:8px;font-family:'Sarabun',sans-serif;font-size:14px">
+        <option value="">ทั้งหมด</option>
+        <option value="complete">มี OEE ครบ</option>
+        <option value="partial">Avail เท่านั้น</option>
+      </select>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <button class="exp-btn btn-export-all" onclick="exportFiltered()" style="border:none;border-radius:10px;padding:12px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;background:var(--secondary);color:#fff">📥 Export (ตามกรอง)</button>
+    <button onclick="clearAll()" style="border:2px solid var(--stop);border-radius:10px;padding:12px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;background:#fff;color:var(--stop)">🗑 ล้างวันนี้</button>
+  </div>
+</div>
+
+<!-- Avg CT Summary (จาก Type B history) -->
+<div class="card" id="ctSummaryCard" style="display:none">
+  <div class="card-title">📐 Avg Cycle Time จาก History (ใช้เป็น Standard CT)</div>
+  <div id="ctSummaryBody" style="font-size:13px"></div>
+</div>
+
+<!-- Work Sampling Tally -->
+<div class="card">
+  <div class="card-title">🎲 Work Sampling — บันทึกรวดเร็ว</div>
+
+  <!-- คำอธิบาย -->
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:700;color:#0369a1;margin-bottom:6px">📖 Work Sampling คืออะไร?</div>
+    <p style="font-size:13px;color:#0c4a6e;line-height:1.7">
+      แทนที่จะยืนจับเวลาติดๆ — ให้ <strong>เดินผ่านเครื่องทุก 15 นาที</strong>
+      ชำเลืองดูสถานะเครื่องแล้ว<strong>กดปุ่มทันที</strong> ใช้เวลาไม่ถึง 5 วินาที
+      ทำซ้ำทั้งวัน → ระบบคำนวณ Availability ให้อัตโนมัติ
+    </p>
+  </div>
+
+  <!-- Flow วิธีกด -->
+  <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:700;color:#92400e;margin-bottom:8px">⚡ วิธีใช้ (กดตามนี้เท่านั้น)</div>
+    <div style="font-size:13px;color:#78350f;line-height:2">
+      <div>1️⃣ ตั้งนาฬิกาปลุกทุก <strong>15 นาที</strong></div>
+      <div>2️⃣ เมื่อปลุก → เดินไปที่เครื่อง → <strong>ดูสถานะตอนนั้น</strong></div>
+      <div>3️⃣ กด <strong>ปุ่มเดียว</strong> ที่ตรงกับสิ่งที่เห็น → เดินออก</div>
+      <div>4️⃣ กดผิด → กด <strong>↩ Undo</strong> ทันที (แก้ได้แค่ 1 ครั้งล่าสุด)</div>
+    </div>
+  </div>
+
+  <!-- สถานะ 4 แบบ -->
+  <div style="background:#f9fafb;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px">
+    <div style="font-weight:700;margin-bottom:6px;font-size:13px">สถานะที่กดได้ 4 แบบ:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div style="background:#d1fae5;border-radius:6px;padding:8px"><strong style="color:#065f46">▶ RUN</strong><br>เครื่องกำลังตัด/กลึงอยู่<br><span style="color:#6b7280">มีเสียงเครื่อง + เศษโลหะ</span></div>
+      <div style="background:#fef3c7;border-radius:6px;padding:8px"><strong style="color:#92400e">🔧 SETUP</strong><br>กำลังตั้งมีด ตั้งศูนย์ จับงาน<br><span style="color:#6b7280">ยังไม่ได้เริ่มตัด</span></div>
+      <div style="background:#f3f4f6;border-radius:6px;padding:8px"><strong style="color:#374151">⬤ IDLE</strong><br>เครื่องว่าง ไม่มีคนทำงาน<br><span style="color:#6b7280">รองาน รอ material รอคน</span></div>
+      <div style="background:#fee2e2;border-radius:6px;padding:8px"><strong style="color:#991b1b">⛔ DOWN</strong><br>เครื่องเสีย หยุดผิดแผน<br><span style="color:#6b7280">ซ่อม รอช่าง รอ spare part</span></div>
+    </div>
+  </div>
+
+  <!-- เครื่องที่วัด -->
+  <div style="margin-bottom:10px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px">
+    <span>วัดเครื่อง:</span>
+    <select id="wsmachine" style="border:1.5px solid #d1d5db;border-radius:8px;padding:6px 10px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700">
+      <option value="M1">🏭 M1</option><option value="M2">🏭 M2</option>
+    </select>
+    <span style="font-size:12px;color:var(--muted)" id="wsSessionInfo">0 observations วันนี้</span>
+  </div>
+
+  <!-- Tally Buttons -->
+  <div class="tally-grid">
+    <button class="tally-btn t-run" onclick="tally('RUN')">▶ RUN<span class="tally-count" id="cnt-RUN">0</span></button>
+    <button class="tally-btn t-setup" onclick="tally('SETUP')">🔧 SETUP<span class="tally-count" id="cnt-SETUP">0</span></button>
+    <button class="tally-btn t-idle" onclick="tally('IDLE')">⬤ IDLE<span class="tally-count" id="cnt-IDLE">0</span></button>
+    <button class="tally-btn t-down" onclick="tally('DOWN')">⛔ DOWN<span class="tally-count" id="cnt-DOWN">0</span></button>
+  </div>
+
+  <!-- Undo + Last tap -->
+  <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+    <button onclick="undoTally()" id="btnUndo" style="flex:1;background:#fff;border:2px solid #d1d5db;border-radius:8px;padding:10px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;touch-action:manipulation" disabled>↩ Undo ล่าสุด</button>
+    <div id="lastTapInfo" style="flex:1;background:#f9fafb;border-radius:8px;padding:10px;font-size:12px;color:var(--muted);text-align:center">ยังไม่มีการกด</div>
+  </div>
+
+  <!-- Result -->
+  <div class="ws-result" id="wsResult" style="display:none;margin-top:10px">
+    <div style="font-weight:700;margin-bottom:6px;font-size:14px">📊 ผลการ Sampling วันนี้</div>
+    <div class="ws-row"><span>จำนวนครั้งที่สังเกต</span><strong id="wsTotal">0</strong></div>
+    <div class="ws-row" style="background:#d1fae5;padding:4px 6px;border-radius:4px"><span>▶ RUN — Availability ประมาณ</span><strong id="wsRunPct" style="color:#10b981">-</strong></div>
+    <div class="ws-row"><span>🔧 SETUP — เวลา Setup</span><strong id="wsSetupPct" style="color:#f59e0b">-</strong></div>
+    <div class="ws-row"><span>⬤ IDLE — เครื่องว่าง</span><strong id="wsIdlePct" style="color:#6b7280">-</strong></div>
+    <div class="ws-row"><span>⛔ DOWN — เครื่องเสีย</span><strong id="wsDownPct" style="color:#ef4444">-</strong></div>
+    <div style="margin-top:8px;font-size:12px;color:#6b7280;text-align:center">
+      💡 ค่า Availability ที่ถูกต้องต้องมี ≥30 observations (ทำทั้งวัน)
+    </div>
+  </div>
+
+  <button onclick="resetTally()" style="width:100%;margin-top:8px;background:none;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-family:'Sarabun',sans-serif;font-size:13px;color:var(--muted);cursor:pointer">↺ รีเซ็ต Tally ใหม่</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEYS={A:'oee_records_a',B:'oee_records_b',C:'oee_records_c'};
+const WS_KEY='oee_ws_tally';
+let tally_counts={RUN:0,SETUP:0,IDLE:0,DOWN:0};
+
+window.onload=()=>{
+  const now=new Date();
+  document.getElementById('dateBar').textContent=
+    now.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  loadAllSummary();
+  // Load tally
+  const saved=JSON.parse(localStorage.getItem(WS_KEY)||'{}');
+  tally_counts={RUN:saved.RUN||0,SETUP:saved.SETUP||0,IDLE:saved.IDLE||0,DOWN:saved.DOWN||0};
+  updateTallyUI();
+};
+
+function getAllTodayRecords(applyFilter=false){
+  const today=new Date().toLocaleDateString('th-TH');
+  const fMach=applyFilter?document.getElementById('filterMachine')?.value:'';
+  const fType=applyFilter?document.getElementById('filterType')?.value:'';
+  const fOEE=applyFilter?document.getElementById('filterOEE')?.value:'';
+  const all=[];
+  Object.entries(KEYS).forEach(([type,key])=>{
+    const recs=JSON.parse(localStorage.getItem(key)||'[]');
+    recs.filter(r=>r.date===today).forEach(r=>all.push({...r,typeKey:type}));
+  });
+  all.sort((a,b)=>a.time.localeCompare(b.time));
+  if(!applyFilter)return all;
+  return all.filter(r=>{
+    if(fMach&&r.machine!==fMach)return false;
+    if(fType&&(r.type||r.typeKey)!==fType)return false;
+    if(fOEE==='complete'&&(!r.oee||r.oee==='-'))return false;
+    if(fOEE==='partial'&&r.oee&&r.oee!=='-')return false;
+    return true;
+  });
+}
+
+function loadAllSummary(){
+  const recs=getAllTodayRecords();
+  document.getElementById('recCount').textContent=recs.length;
+
+  if(!recs.length){
+    document.getElementById('statTotal').textContent='0';
+    document.getElementById('statAvail').textContent='-';
+    document.getElementById('statQual').textContent='-';
+    document.getElementById('allRecordsBody').innerHTML='<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:12px">ยังไม่มีข้อมูล</td></tr>';
+    document.getElementById('m1Avail').textContent='-';document.getElementById('m1Jobs').textContent='0';
+    document.getElementById('m2Avail').textContent='-';document.getElementById('m2Jobs').textContent='0';
+    return;
+  }
+
+  document.getElementById('statTotal').textContent=recs.length;
+
+  // Avg Availability
+  const avails=recs.map(r=>parseFloat(r.availability||0)).filter(v=>v>0);
+  const avgAvail=avails.length>0?avails.reduce((a,b)=>a+b,0)/avails.length:0;
+  const el=document.getElementById('statAvail');
+  el.textContent=avgAvail.toFixed(1)+'%';
+  el.style.color=avgAvail>70?'#10b981':avgAvail>50?'#f59e0b':'#ef4444';
+
+  // Avg Quality (skip C pass/fail text)
+  const quals=recs.filter(r=>r.typeKey!=='C').map(r=>parseFloat(r.quality||0)).filter(v=>v>0);
+  const avgQual=quals.length>0?quals.reduce((a,b)=>a+b,0)/quals.length:0;
+  const eq=document.getElementById('statQual');
+  eq.textContent=quals.length>0?avgQual.toFixed(1)+'%':'-';
+  if(quals.length>0)eq.style.color=avgQual>95?'#10b981':avgQual>85?'#f59e0b':'#ef4444';
+
+  // Machine breakdown
+  ['M1','M2'].forEach(m=>{
+    const mr=recs.filter(r=>r.machine===m);
+    const ma=mr.map(r=>parseFloat(r.availability||0)).filter(v=>v>0);
+    const avg=ma.length>0?ma.reduce((a,b)=>a+b,0)/ma.length:0;
+    const id=m.toLowerCase();
+    document.getElementById(`${id}Jobs`).textContent=mr.length;
+    const av=document.getElementById(`${id}Avail`);
+    av.textContent=ma.length>0?avg.toFixed(1)+'%':'-';
+    av.style.color=avg>70?'#10b981':avg>50?'#f59e0b':'#ef4444';
+  });
+
+  // Table
+  const tbody=document.getElementById('allRecordsBody');
+  tbody.innerHTML=recs.map((r,i)=>{
+    const badgeMap={A:'badge-a',B:'badge-b',C:'badge-c'};
+    const qDisplay=r.typeKey==='C'?(r.quality==='pass'?'✅ PASS':r.quality==='fail'?'❌ FAIL':'-'):(r.quality+'%');
+    const oeeDisplay=r.oee&&r.oee!=='-'?r.oee+'%':'N/A';
+    return`<tr><td>${i+1}</td><td><span class="${badgeMap[r.typeKey]||''}">${r.typeKey}</span></td><td>${r.time}</td><td>${r.machine}</td><td>${r.jobNo||'-'}</td><td>${r.availability}%</td><td>${qDisplay}</td><td>${oeeDisplay}</td></tr>`;
+  }).join('');
+}
+
+function exportFiltered(){
+  const recs=getAllTodayRecords(true);
+  if(!recs.length){showToast('ไม่มีข้อมูลตามกรองที่เลือก');return;}
+  _doExport(recs,'OEE_FILTERED');
+}
+function exportAll(){
+  const recs=getAllTodayRecords();
+  if(!recs.length){showToast('ไม่มีข้อมูล');return;}
+  _doExport(recs,'OEE_ALL');
+}
+
+function _doExport(recs,prefix){
+  const hdr=['#','Type','วันที่','เวลา','เครื่อง','Observer','Job No','ชิ้นงาน','SetupTime(min)','RunTime(min)','Downtime(min)','SetupRatio%','Availability%','Quality%/Status','OEE%','Remarks'];
+  const rows=recs.map((r,i)=>[i+1,r.type||r.typeKey,r.date,r.time,r.machine,r.observer||'-',r.jobNo||'-',r.partName||'-',r.setupTime||'-',r.runTime||'-',r.downtime||'-',r.setupRatio||'-',r.availability||'-',r.quality||'-',r.oee||'-',`"${r.remarks||''}"`]);
+  const csv=[hdr,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`${prefix}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);showToast(`📥 Export ${recs.length} records!`);
+  // Show avg CT summary after export
+  showCTSummary();
+}
+
+function showCTSummary(){
+  // Calc avg run time per part from Type A records (as baseline CT)
+  const all=[];
+  Object.values(KEYS).forEach(key=>{
+    JSON.parse(localStorage.getItem(key)||'[]').forEach(r=>all.push(r));
+  });
+  const byPart={};
+  all.filter(r=>r.partName&&r.runTime&&parseFloat(r.runTime)>0&&r.qtyProduced&&parseInt(r.qtyProduced)>0).forEach(r=>{
+    const key=r.partName;const ctPerPiece=parseFloat(r.runTime)/parseInt(r.qtyProduced);
+    if(!byPart[key])byPart[key]=[];
+    byPart[key].push(ctPerPiece);
+  });
+  const parts=Object.keys(byPart);
+  if(!parts.length)return;
+  const card=document.getElementById('ctSummaryCard');
+  const body=document.getElementById('ctSummaryBody');
+  card.style.display='block';
+  body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#1a3a5c;color:#fff"><th style="padding:6px 8px;text-align:left">ชิ้นงาน</th><th style="padding:6px 8px;text-align:right">Avg CT (นาที/ชิ้น)</th><th style="padding:6px 8px;text-align:right">จำนวนข้อมูล</th></tr>'
+    +parts.map(p=>{
+      const avg=byPart[p].reduce((a,b)=>a+b,0)/byPart[p].length;
+      return`<tr><td style="border:1px solid #e5e7eb;padding:5px 8px">${p}</td><td style="border:1px solid #e5e7eb;padding:5px 8px;text-align:right;font-weight:700;color:#10b981">${avg.toFixed(1)}</td><td style="border:1px solid #e5e7eb;padding:5px 8px;text-align:right;color:#718096">${byPart[p].length}</td></tr>`;
+    }).join('')+'</table><p style="margin-top:8px;font-size:12px;color:#718096">💡 ใช้ค่า Avg CT นี้เป็น Standard CT ใน Type B เมื่อมีข้อมูลพอ (≥5 records)</p>';
+}
+
+function clearAll(){
+  if(!confirm('ล้างข้อมูลทั้งหมดวันนี้?\n(ข้อมูลวันก่อนจะยังอยู่)'))return;
+  const today=new Date().toLocaleDateString('th-TH');
+  Object.values(KEYS).forEach(key=>{
+    const recs=JSON.parse(localStorage.getItem(key)||'[]');
+    localStorage.setItem(key,JSON.stringify(recs.filter(r=>r.date!==today)));
+  });
+  loadAllSummary();showToast('✅ ล้างข้อมูลวันนี้แล้ว');
+}
+
+// Work Sampling Tally
+let lastTapState=null;
+function tally(s){
+  tally_counts[s]++;lastTapState=s;
+  localStorage.setItem(WS_KEY,JSON.stringify(tally_counts));
+  updateTallyUI();
+  const labels={RUN:'▶ RUN — เครื่องกำลังตัด',SETUP:'🔧 SETUP — กำลัง Setup',IDLE:'⬤ IDLE — เครื่องว่าง',DOWN:'⛔ DOWN — เครื่องเสีย'};
+  const now=new Date().toTimeString().slice(0,5);
+  document.getElementById('lastTapInfo').innerHTML=`<strong>${labels[s]}</strong><br><span style="color:#9ca3af">${now} น.</span>`;
+  document.getElementById('btnUndo').disabled=false;
+  showToast(`✓ ${s} บันทึก ${now} น. (รวม ${tally_counts[s]})`);
+}
+function undoTally(){
+  if(!lastTapState||tally_counts[lastTapState]<=0)return;
+  tally_counts[lastTapState]--;
+  const prev=lastTapState;lastTapState=null;
+  localStorage.setItem(WS_KEY,JSON.stringify(tally_counts));
+  updateTallyUI();
+  document.getElementById('btnUndo').disabled=true;
+  document.getElementById('lastTapInfo').textContent='ยังไม่มีการกด';
+  showToast(`↩ ยกเลิก ${prev} แล้ว`);
+}
+function updateTallyUI(){
+  Object.keys(tally_counts).forEach(k=>{
+    document.getElementById(`cnt-${k}`).textContent=tally_counts[k];
+  });
+  const total=Object.values(tally_counts).reduce((a,b)=>a+b,0);
+  document.getElementById('wsSessionInfo').textContent=`${total} observations วันนี้`;
+  if(total>0){
+    document.getElementById('wsResult').style.display='block';
+    document.getElementById('wsTotal').textContent=total;
+    const pct=s=>`${tally_counts[s]} ครั้ง (${(tally_counts[s]/total*100).toFixed(1)}%)`;
+    document.getElementById('wsRunPct').textContent=pct('RUN');
+    document.getElementById('wsSetupPct').textContent=pct('SETUP');
+    document.getElementById('wsIdlePct').textContent=pct('IDLE');
+    document.getElementById('wsDownPct').textContent=pct('DOWN');
+  }
+}
+function resetTally(){
+  if(!confirm('รีเซ็ต Work Sampling Tally?\nข้อมูลการกดทั้งหมดจะหายไป'))return;
+  tally_counts={RUN:0,SETUP:0,IDLE:0,DOWN:0};lastTapState=null;
+  localStorage.removeItem(WS_KEY);updateTallyUI();
+  document.getElementById('wsResult').style.display='none';
+  document.getElementById('btnUndo').disabled=true;
+  document.getElementById('lastTapInfo').textContent='ยังไม่มีการกด';
+  showToast('↺ รีเซ็ต Tally แล้ว');
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// Auto refresh every 30s (if open on another device)
+setInterval(loadAllSummary,30000);
+</script>
+</body>
+</html>

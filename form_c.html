@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>OEE Type C — Single Piece</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1a3a5c;--secondary:#e07b00;--setup:#f59e0b;--run:#10b981;--stop:#ef4444;--resume:#8b5cf6;--done:#3b82f6;--idle:#6b7280;--bg:#f0f4f8;--card:#fff;--text:#1a202c;--muted:#718096;--badge:#3b82f6}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:16px;padding-bottom:100px}
+.app-header{background:var(--primary);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:8px 12px;border-radius:8px;font-size:18px;cursor:pointer;text-decoration:none;display:inline-block}
+.header-title{flex:1}.header-title h1{font-size:17px;font-weight:700}.header-title p{font-size:12px;opacity:.8}
+.type-badge{background:var(--badge);color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:800}
+.state-bar{padding:12px 20px;text-align:center;font-size:15px;font-weight:700;transition:background .3s}
+.state-bar.idle{background:var(--idle);color:#fff}.state-bar.setup{background:var(--setup);color:#fff}
+.state-bar.running{background:var(--run);color:#fff}.state-bar.stopped{background:var(--stop);color:#fff}.state-bar.done{background:var(--done);color:#fff}
+.timer-display{text-align:center;padding:12px;font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;background:#0f172a;color:#00ff88;font-family:'Courier New',monospace;letter-spacing:3px}
+.card{background:var(--card);margin:10px 12px;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card-title{font-size:13px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--bg)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row.full{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.form-group input,.form-group select{border:1.5px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:15px;font-family:'Sarabun',sans-serif;background:#fff;color:var(--text);width:100%;-webkit-appearance:none}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,58,92,.1)}
+.ts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.ts-btn{border:none;border-radius:12px;padding:14px 10px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:80px;transition:all .15s;touch-action:manipulation}
+.ts-btn:disabled{opacity:.3;cursor:not-allowed}.ts-btn:not(:disabled):active{transform:scale(.94)}
+.ts-btn .btn-icon{font-size:22px}.ts-btn .btn-label{font-size:14px}.ts-btn .btn-time{font-size:11px;opacity:.85;font-family:monospace}
+.btn-setup{background:var(--setup);color:#fff}.btn-run{background:var(--run);color:#fff}
+.btn-stop{background:var(--stop);color:#fff}.btn-resume-btn{background:var(--resume);color:#fff}
+.btn-done-full{width:100%;background:var(--done);color:#fff;border:none;border-radius:12px;padding:18px;font-family:'Sarabun',sans-serif;font-size:17px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.btn-done-full:disabled{opacity:.3;cursor:not-allowed}.btn-done-full:not(:disabled):active{transform:scale(.98)}
+.event-log{max-height:180px;overflow-y:auto}
+.event-item{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f0f0f0;align-items:flex-start}
+.event-icon{font-size:15px;flex-shrink:0}.event-time{font-family:monospace;font-weight:700;color:var(--primary);white-space:nowrap;font-size:13px}.event-desc{color:var(--muted);flex:1;font-size:13px}
+.quality-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.q-btn{border:2px solid #d1d5db;border-radius:12px;padding:20px;font-family:'Sarabun',sans-serif;font-size:18px;font-weight:700;cursor:pointer;background:#fff;touch-action:manipulation;transition:all .2s}
+.q-btn.pass.active{background:#10b981;border-color:#10b981;color:#fff}
+.q-btn.fail.active{background:#ef4444;border-color:#ef4444;color:#fff}
+.q-btn:not(.active):hover{background:var(--bg)}
+.oee-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.oee-item{background:var(--bg);border-radius:10px;padding:12px;text-align:center}
+.oee-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.oee-value{font-size:22px;font-weight:800;margin:3px 0}.oee-unit{font-size:10px;color:var(--muted)}
+.oee-value.good{color:var(--run)}.oee-value.warn{color:var(--setup)}.oee-value.bad{color:var(--stop)}.oee-value.na{color:var(--muted)}
+.oee-item.highlight{background:var(--primary);color:#fff;grid-column:1/-1}
+.oee-item.highlight .oee-label{color:rgba(255,255,255,.7)}.oee-item.highlight .oee-value{color:#00ff88;font-size:28px}
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 12px;position:sticky;bottom:12px}
+.action-btn{border:none;border-radius:12px;padding:16px;font-family:'Sarabun',sans-serif;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.btn-save{background:var(--primary);color:#fff}.btn-export{background:var(--secondary);color:#fff}
+.records-table{width:100%;font-size:12px;border-collapse:collapse}
+.records-table th{background:var(--primary);color:#fff;padding:7px 8px;text-align:left;white-space:nowrap}
+.records-table td{border:1px solid #e5e7eb;padding:5px 7px;white-space:nowrap}
+.records-table tr:nth-child(even) td{background:#f8fafc}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#0f172a;color:#00ff88;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;display:none;align-items:flex-end}
+.modal-overlay.show{display:flex}
+.modal-sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:22px 18px 40px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:14px}
+.reason-btn{display:block;width:100%;background:var(--bg);border:2px solid transparent;border-radius:10px;padding:13px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:600;margin-bottom:8px;cursor:pointer;text-align:left;touch-action:manipulation}
+.reason-btn:active{background:#dbeafe;border-color:var(--primary)}
+.note-box{background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:10px;font-size:13px;color:#1e40af;margin-bottom:8px}
+.badge-note{font-size:12px;color:var(--muted);text-align:center;padding:4px;margin-top:4px}
+@media(min-width:768px){body{max-width:600px;margin:0 auto}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <a href="index.html" class="back-btn">←</a>
+  <div class="header-title">
+    <h1>OEE บันทึกข้อมูล</h1>
+    <p id="headerDate">-</p>
+  </div>
+  <span class="type-badge">Type C</span>
+</div>
+
+<div class="state-bar idle" id="stateBar">⬤ รอเริ่ม (IDLE)</div>
+<div class="timer-display" id="timerDisplay">00:00:00</div>
+
+<!-- Job Info -->
+<div class="card">
+  <div class="card-title">📋 ข้อมูล Job — Single Piece (1 ชิ้น/งาน)</div>
+  <div class="note-box">📌 Type C: บันทึกสำหรับชิ้นงานชิ้นเดียว ทำทีละชิ้น</div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>เครื่องจักร</label>
+      <select id="machine"><option value="M1">M1</option><option value="M2">M2</option></select>
+    </div>
+    <div class="form-group">
+      <label>ผู้สังเกต</label>
+      <input type="text" id="observer" placeholder="ชื่อ">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Job No.</label>
+      <input type="text" id="jobNo" placeholder="เช่น J-001">
+    </div>
+    <div class="form-group">
+      <label>ชื่อชิ้นงาน</label>
+      <input type="text" id="partName" placeholder="Part name">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>เวลาทำงานวันนี้ (นาที)</label>
+      <input type="number" id="plannedTime" value="480" min="60" max="720">
+    </div>
+    <div class="form-group">
+      <label>Estimated Time (นาที) — จาก Quotation</label>
+      <input type="number" id="estTime" placeholder="เวลาที่คาดว่าจะใช้" step="1" onchange="calcOEE()">
+    </div>
+  </div>
+</div>
+
+<!-- Timestamp Buttons -->
+<div class="card">
+  <div class="card-title">⏱ บันทึกเวลา — กดตามลำดับ</div>
+  <div class="ts-grid">
+    <button class="ts-btn btn-setup" id="btnSetup" onclick="tapSetup()">
+      <span class="btn-icon">🔧</span><span class="btn-label">เริ่ม Setup</span>
+      <span class="btn-time" id="tSetup">--:--:--</span>
+    </button>
+    <button class="ts-btn btn-run" id="btnRun" onclick="tapRun()" disabled>
+      <span class="btn-icon">▶️</span><span class="btn-label">เริ่ม Run</span>
+      <span class="btn-time" id="tRun">--:--:--</span>
+    </button>
+    <button class="ts-btn btn-stop" id="btnStop" onclick="tapStop()" disabled>
+      <span class="btn-icon">⏸️</span><span class="btn-label">หยุด</span>
+      <span class="btn-time" id="tStop">--:--:--</span>
+    </button>
+    <button class="ts-btn btn-resume-btn" id="btnResume" onclick="tapResume()" disabled>
+      <span class="btn-icon">⏯️</span><span class="btn-label">กลับมา Run</span>
+      <span class="btn-time" id="tResume">--:--:--</span>
+    </button>
+  </div>
+  <button class="btn-done-full" id="btnDone" onclick="tapDone()" disabled>
+    ✅ เสร็จแล้ว (Done)
+    <span id="tDone" style="display:block;font-size:12px;opacity:.8;margin-top:2px">กดเมื่อผลิตเสร็จ</span>
+  </button>
+  <p class="badge-note">* กด "หยุด" ซ้ำได้ถ้ามีหยุดหลายครั้ง</p>
+</div>
+
+<!-- Event Log -->
+<div class="card">
+  <div class="card-title">📜 Event Log</div>
+  <div class="event-log" id="eventLog">
+    <div style="color:#9ca3af;font-size:13px;text-align:center;padding:10px">ยังไม่มี event</div>
+  </div>
+</div>
+
+<!-- Quality Result (after done) -->
+<div class="card" id="resultSection" style="display:none">
+  <div class="card-title">🎯 ผลคุณภาพ — ชิ้นงาน 1 ชิ้น</div>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:10px">ชิ้นนี้ผ่านมาตรฐานหรือไม่?</p>
+  <div class="quality-toggle">
+    <button class="q-btn pass" id="btnPass" onclick="setQuality('pass')">✅ PASS<br><span style="font-size:13px;font-weight:400">ผ่านมาตรฐาน</span></button>
+    <button class="q-btn fail" id="btnFail" onclick="setQuality('fail')">❌ FAIL<br><span style="font-size:13px;font-weight:400">ไม่ผ่าน / Rework</span></button>
+  </div>
+  <div class="form-row full" id="failReasonRow" style="display:none">
+    <div class="form-group">
+      <label>เหตุผลที่ไม่ผ่าน / Rework</label>
+      <input type="text" id="failReason" placeholder="เช่น ขนาดเกิน tolerance, ผิวขรุขระ">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="form-group">
+      <label>หมายเหตุ</label>
+      <input type="text" id="remarks" placeholder="บันทึกเพิ่มเติม">
+    </div>
+  </div>
+</div>
+
+<!-- OEE Results -->
+<div class="card" id="oeeSection" style="display:none">
+  <div class="card-title">📊 ผล OEE — Single Piece Analysis</div>
+  <div class="oee-grid">
+    <div class="oee-item"><div class="oee-label">Setup Time</div><div class="oee-value na" id="oeeSetupTime">-</div><div class="oee-unit">นาที</div></div>
+    <div class="oee-item"><div class="oee-label">Run Time จริง</div><div class="oee-value na" id="oeeRunTime">-</div><div class="oee-unit">นาที</div></div>
+    <div class="oee-item"><div class="oee-label">Downtime</div><div class="oee-value na" id="oeeDowntime">-</div><div class="oee-unit">นาที</div></div>
+    <div class="oee-item"><div class="oee-label">Setup Ratio</div><div class="oee-value na" id="oeeSetupRatio">-</div><div class="oee-unit">%</div></div>
+    <div class="oee-item"><div class="oee-label">Availability</div><div class="oee-value na" id="oeeAvail">-</div><div class="oee-unit">% (vs แผน)</div></div>
+    <div class="oee-item"><div class="oee-label">Quality</div><div class="oee-value na" id="oeeQuality">-</div><div class="oee-unit">Pass / Fail</div></div>
+    <div class="oee-item"><div class="oee-label">vs Est. Time</div><div class="oee-value na" id="oeePerf">N/A</div><div class="oee-unit">จริง vs คาด (นาที)</div></div>
+    <div class="oee-item highlight"><div class="oee-label">สรุป Job นี้</div><div class="oee-value na" id="oeeTotal">-</div><div class="oee-unit"></div></div>
+  </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="action-row">
+  <button class="action-btn btn-save" id="btnSave" onclick="saveRecord()" disabled>💾 บันทึก</button>
+  <button class="action-btn btn-export" onclick="exportCSV()">📥 Export CSV</button>
+</div>
+<div style="margin:8px 12px 0">
+  <button id="newJobBtn" onclick="resetForm()" style="display:none;width:100%;border:none;border-radius:12px;padding:16px;background:#10b981;color:#fff;font-family:'Sarabun',sans-serif;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation">🔄 เริ่ม Job ใหม่</button>
+</div>
+
+<!-- History -->
+<div class="card" style="margin-top:10px">
+  <div class="card-title">🗂 บันทึกวันนี้ (<span id="recordCount">0</span> records)
+    <button onclick="clearToday()" style="float:right;background:none;border:1px solid #e5e7eb;border-radius:6px;padding:2px 8px;font-size:11px;color:var(--muted);cursor:pointer">ล้าง</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="records-table">
+      <thead><tr><th>#</th><th>เวลา</th><th>เครื่อง</th><th>Job</th><th>Setup(นาที)</th><th>Run(นาที)</th><th>Avail%</th><th>Quality</th><th>vs Est.</th></tr></thead>
+      <tbody id="recordsBody"><tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:10px">ยังไม่มีข้อมูล</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="stopModal">
+  <div class="modal-sheet">
+    <div class="modal-title">⏸️ สาเหตุที่หยุด</div>
+    <button class="reason-btn" onclick="selectStopReason('รอวัตถุดิบ')">📦 รอวัตถุดิบ</button>
+    <button class="reason-btn" onclick="selectStopReason('เครื่องเสีย')">🔧 เครื่องเสีย / Breakdown</button>
+    <button class="reason-btn" onclick="selectStopReason('ปรับแต่งชิ้นงาน')">⚙️ ปรับแต่งชิ้นงาน</button>
+    <button class="reason-btn" onclick="selectStopReason('รอผู้ควบคุม')">👤 รอผู้ควบคุม</button>
+    <button class="reason-btn" onclick="selectStopReason('เปลี่ยนมีด')">🗡️ เปลี่ยนมีด / Tool Change</button>
+    <button class="reason-btn" onclick="selectStopReason('อื่นๆ')">📝 อื่นๆ</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY='oee_records_c';
+const STATES={IDLE:'idle',SETUP:'setup',RUNNING:'running',STOPPED:'stopped',DONE:'done'};
+let state=STATES.IDLE,events=[],stopPairs=[],currentStop=null,lastEventTime=null,qualityResult=null;
+
+// Inject index.html into history so device back button (iPad/Android swipe) lands there
+history.replaceState({p:'index'},'','index.html');
+history.pushState({p:'form'},'',location.href);
+
+window.onload=()=>{
+  const now=new Date();
+  document.getElementById('headerDate').textContent=now.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('observer').value=localStorage.getItem('oee_observer')||'';
+  loadRecords();
+  setInterval(()=>{if(state!==STATES.IDLE&&state!==STATES.DONE&&lastEventTime)document.getElementById('timerDisplay').textContent=fmtDur(new Date()-lastEventTime);},1000);
+};
+document.getElementById('observer').addEventListener('change',function(){localStorage.setItem('oee_observer',this.value)});
+
+function fmtDur(ms){const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);return`${p(h)}:${p(m%60)}:${p(s%60)}`}
+function fmtTime(d){return d.toTimeString().slice(0,8)}
+function p(n){return String(n).padStart(2,'0')}
+
+function setQuality(v){
+  qualityResult=v;
+  document.getElementById('btnPass').classList.toggle('active',v==='pass');
+  document.getElementById('btnFail').classList.toggle('active',v==='fail');
+  document.getElementById('failReasonRow').style.display=v==='fail'?'grid':'none';
+  calcOEE();showToast(v==='pass'?'✅ PASS — ผ่านมาตรฐาน':'❌ FAIL — ต้อง Rework');
+}
+
+function setStateUI(ns){
+  state=ns;const bar=document.getElementById('stateBar');
+  bar.className=`state-bar ${ns}`;
+  bar.textContent={idle:'⬤ รอเริ่ม (IDLE)',setup:'🔧 กำลัง Setup...',running:'▶ กำลัง Run...',stopped:'⏸ หยุด / Downtime',done:'✅ เสร็จแล้ว'}[ns];
+  document.getElementById('timerDisplay').textContent='00:00:00';lastEventTime=new Date();
+}
+function tapSetup(){if(state!==STATES.IDLE)return;const t=new Date();events.push({type:'SETUP_START',time:t});document.getElementById('tSetup').textContent=fmtTime(t);setStateUI(STATES.SETUP);document.getElementById('btnSetup').disabled=true;document.getElementById('btnRun').disabled=false;addLog('🔧','เริ่ม Setup',t);showToast('✓ Setup เริ่ม '+fmtTime(t));}
+function tapRun(){if(state!==STATES.SETUP&&state!==STATES.STOPPED)return;const t=new Date();events.push({type:'RUN_START',time:t});document.getElementById('tRun').textContent=fmtTime(t);setStateUI(STATES.RUNNING);document.getElementById('btnRun').disabled=true;document.getElementById('btnStop').disabled=false;document.getElementById('btnResume').disabled=true;document.getElementById('btnDone').disabled=false;addLog('▶️','เริ่ม Run',t);showToast('✓ Run เริ่ม '+fmtTime(t));}
+function tapStop(){if(state!==STATES.RUNNING)return;document.getElementById('stopModal').classList.add('show');}
+function selectStopReason(reason){document.getElementById('stopModal').classList.remove('show');const t=new Date();currentStop={stopTime:t,reason};events.push({type:'STOP',time:t,note:reason});document.getElementById('tStop').textContent=fmtTime(t);setStateUI(STATES.STOPPED);document.getElementById('btnStop').disabled=true;document.getElementById('btnResume').disabled=false;document.getElementById('btnDone').disabled=true;document.getElementById('btnRun').disabled=false;addLog('⏸️',`หยุด — ${reason}`,t);showToast('✓ หยุด: '+reason);}
+function tapResume(){if(state!==STATES.STOPPED)return;const t=new Date();if(currentStop){stopPairs.push({...currentStop,resumeTime:t});currentStop=null;}events.push({type:'RESUME',time:t});document.getElementById('tResume').textContent=fmtTime(t);setStateUI(STATES.RUNNING);document.getElementById('btnStop').disabled=false;document.getElementById('btnResume').disabled=true;document.getElementById('btnDone').disabled=false;document.getElementById('btnRun').disabled=true;addLog('⏯️','กลับมา Run',t);showToast('✓ Resume '+fmtTime(t));}
+function tapDone(){if(state!==STATES.RUNNING)return;const t=new Date();events.push({type:'DONE',time:t});document.getElementById('tDone').textContent=fmtTime(t);setStateUI(STATES.DONE);document.getElementById('btnStop').disabled=true;document.getElementById('btnDone').disabled=true;document.getElementById('timerDisplay').textContent='✓ DONE';document.getElementById('resultSection').style.display='block';document.getElementById('oeeSection').style.display='block';document.getElementById('btnSave').disabled=false;addLog('✅','เสร็จแล้ว!',t);calcOEE();showToast('✅ Done! เลือก PASS หรือ FAIL');setTimeout(()=>document.getElementById('resultSection').scrollIntoView({behavior:'smooth'}),300);}
+
+function addLog(icon,desc,time){const log=document.getElementById('eventLog');const ph=log.querySelector('[style*="text-align:center"]');if(ph)ph.remove();const div=document.createElement('div');div.className='event-item';div.innerHTML=`<span class="event-icon">${icon}</span><span class="event-time">${fmtTime(time)}</span><span class="event-desc">${desc}</span>`;log.appendChild(div);log.scrollTop=log.scrollHeight;}
+
+function calcOEE(){
+  const setupEv=events.find(e=>e.type==='SETUP_START');
+  const runEv=events.find(e=>e.type==='RUN_START');
+  const doneEv=events.find(e=>e.type==='DONE');
+  if(!setupEv||!runEv||!doneEv)return;
+  const planned=parseFloat(document.getElementById('plannedTime').value)||480;
+  const estTime=parseFloat(document.getElementById('estTime').value)||0;
+  const setupTime=(runEv.time-setupEv.time)/60000;
+  const totalJob=(doneEv.time-setupEv.time)/60000;
+  let dt=0;stopPairs.forEach(sp=>dt+=(sp.resumeTime-sp.stopTime)/60000);
+  const runTime=(doneEv.time-runEv.time)/60000-dt;
+  const setupRatio=totalJob>0?setupTime/totalJob*100:0;
+  const avail=planned>0?runTime/planned*100:0;
+  const qual=qualityResult==='pass'?100:qualityResult==='fail'?0:null;
+  setVal('oeeSetupTime',setupTime.toFixed(1),setupTime>30?'warn':'good');
+  setVal('oeeRunTime',runTime.toFixed(1),'good');
+  setVal('oeeDowntime',dt.toFixed(1),dt>10?'bad':'good');
+  setVal('oeeSetupRatio',setupRatio.toFixed(1)+'%',setupRatio>25?'bad':setupRatio>15?'warn':'good');
+  setVal('oeeAvail',avail.toFixed(1)+'%',avail>70?'good':avail>50?'warn':'bad');
+  if(qual!==null){setVal('oeeQuality',qual===100?'PASS ✅':'FAIL ❌',qual===100?'good':'bad');}
+  // vs Est Time
+  if(estTime>0){
+    const diff=runTime-estTime;
+    setVal('oeePerf',`${diff>=0?'+':''}${diff.toFixed(1)} นาที`,diff<=0?'good':diff<=estTime*0.2?'warn':'bad');
+  }
+  // Summary
+  let summary='-';
+  if(qualityResult==='pass'&&avail>0){
+    if(avail>70&&(estTime===0||runTime<=estTime*1.2))summary='👍 ดี';
+    else if(avail>50)summary='⚠️ พอใช้';
+    else summary='📉 ต้องปรับปรุง';
+  } else if(qualityResult==='fail'){summary='❌ Rework';}
+  setVal('oeeTotal',summary,qualityResult==='pass'?'good':'bad');
+  window._calc={setupTime,runTime,downtime:dt,setupRatio,avail,qual,estTime};
+}
+function setVal(id,v,cls){const el=document.getElementById(id);el.textContent=v;el.className=`oee-value ${cls}`}
+
+function saveRecord(){
+  if(state!==STATES.DONE)return;
+  const setupEv=events.find(e=>e.type==='SETUP_START');
+  const doneEv=events.find(e=>e.type==='DONE');
+  const c=window._calc||{};
+  const rec={id:Date.now(),type:'C',date:new Date().toLocaleDateString('th-TH'),time:fmtTime(doneEv.time),machine:document.getElementById('machine').value,observer:document.getElementById('observer').value,jobNo:document.getElementById('jobNo').value,partName:document.getElementById('partName').value,plannedTime:document.getElementById('plannedTime').value,estTime:document.getElementById('estTime').value||'-',setupStart:setupEv?fmtTime(setupEv.time):'-',doneTime:fmtTime(doneEv.time),setupTime:(c.setupTime||0).toFixed(1),runTime:(c.runTime||0).toFixed(1),downtime:(c.downtime||0).toFixed(1),setupRatio:(c.setupRatio||0).toFixed(1),availability:(c.avail||0).toFixed(1),quality:qualityResult||'-',vsEst:c.estTime>0?((c.runTime||0)-c.estTime).toFixed(1):'-',failReason:document.getElementById('failReason')?.value||'',remarks:document.getElementById('remarks').value};
+  const recs=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');recs.push(rec);localStorage.setItem(STORAGE_KEY,JSON.stringify(recs));loadRecords();showToast('✅ บันทึกสำเร็จ!');document.getElementById('btnSave').disabled=true;document.getElementById('btnSave').textContent='✓ บันทึกแล้ว';document.getElementById('newJobBtn').style.display='block';window.scrollTo({top:0,behavior:'smooth'});
+}
+function loadRecords(){
+  const recs=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  const today=new Date().toLocaleDateString('th-TH');
+  const tr=recs.filter(r=>r.date===today);
+  document.getElementById('recordCount').textContent=tr.length;
+  const tbody=document.getElementById('recordsBody');
+  if(!tr.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:10px">ยังไม่มีข้อมูล</td></tr>';return;}
+  tbody.innerHTML=tr.map((r,i)=>`<tr><td>${i+1}</td><td>${r.time}</td><td>${r.machine}</td><td>${r.jobNo||'-'}</td><td>${r.setupTime}</td><td>${r.runTime}</td><td>${r.availability}%</td><td>${r.quality==='pass'?'✅ PASS':r.quality==='fail'?'❌ FAIL':'-'}</td><td>${r.vsEst!=='-'?r.vsEst+' นาที':'-'}</td></tr>`).join('');
+}
+function clearToday(){if(!confirm('ล้างข้อมูลวันนี้?'))return;const recs=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');const today=new Date().toLocaleDateString('th-TH');localStorage.setItem(STORAGE_KEY,JSON.stringify(recs.filter(r=>r.date!==today)));loadRecords();}
+function exportCSV(){
+  const recs=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  if(!recs.length){showToast('ไม่มีข้อมูล');return;}
+  const hdr=['#','Type','วันที่','เวลา','เครื่อง','Observer','Job No','ชิ้นงาน','PlannedTime','EstTime','SetupStart','DoneTime','SetupTime(min)','RunTime(min)','Downtime(min)','SetupRatio%','Availability%','Quality','vsEst(min)','FailReason','Remarks'];
+  const rows=recs.map((r,i)=>[i+1,r.type,r.date,r.time,r.machine,r.observer,r.jobNo,r.partName,r.plannedTime,r.estTime,r.setupStart,r.doneTime,r.setupTime,r.runTime,r.downtime,r.setupRatio,r.availability,r.quality,r.vsEst,`"${r.failReason||''}"`,`"${r.remarks||''}"`]);
+  const csv=[hdr,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`OEE_TypeC_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);showToast('📥 Export สำเร็จ!');
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+document.getElementById('stopModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show')});
+
+function resetForm(){
+  const obs=document.getElementById('observer').value;
+  const mach=document.getElementById('machine').value;
+  const pt=document.getElementById('plannedTime').value;
+  state=STATES.IDLE;events=[];stopPairs=[];currentStop=null;lastEventTime=null;qualityResult=null;
+  document.getElementById('stateBar').className='state-bar idle';
+  document.getElementById('stateBar').textContent='⬤ รอเริ่ม (IDLE)';
+  document.getElementById('timerDisplay').textContent='00:00:00';
+  ['tSetup','tRun','tStop','tResume'].forEach(id=>document.getElementById(id).textContent='--:--:--');
+  document.getElementById('tDone').textContent='กดเมื่อผลิตเสร็จ';
+  document.getElementById('btnSetup').disabled=false;
+  document.getElementById('btnRun').disabled=true;
+  document.getElementById('btnStop').disabled=true;
+  document.getElementById('btnResume').disabled=true;
+  document.getElementById('btnDone').disabled=true;
+  document.getElementById('jobNo').value='';
+  document.getElementById('partName').value='';
+  document.getElementById('estTime').value='';
+  document.getElementById('failReason').value='';
+  document.getElementById('remarks').value='';
+  document.getElementById('btnPass').classList.remove('active');
+  document.getElementById('btnFail').classList.remove('active');
+  document.getElementById('failReasonRow').style.display='none';
+  document.getElementById('eventLog').innerHTML='<div style="color:#9ca3af;font-size:13px;text-align:center;padding:10px">ยังไม่มี event</div>';
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('oeeSection').style.display='none';
+  document.getElementById('btnSave').disabled=true;
+  document.getElementById('btnSave').textContent='💾 บันทึก';
+  document.getElementById('newJobBtn').style.display='none';
+  document.getElementById('observer').value=obs;
+  document.getElementById('machine').value=mach;
+  document.getElementById('plannedTime').value=pt;
+  window._calc=null;
+  showToast('🆕 พร้อม Job ใหม่!');
+}
+</script>
+</body>
+</html>

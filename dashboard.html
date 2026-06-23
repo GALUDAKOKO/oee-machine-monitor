@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 OEE Dashboard — Machine Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --primary:#1a3a5c; --accent:#e07b00;
+  --green:#10b981; --amber:#f59e0b; --blue:#3b82f6;
+  --red:#ef4444; --purple:#8b5cf6; --teal:#06b6d4;
+  --bg:#f0f4f8; --card:#fff; --text:#1a202c; --muted:#718096; --border:#e2e8f0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:16px;padding-bottom:40px}
+
+/* ─── HEADER ─── */
+.app-header{
+  background:linear-gradient(135deg,#1a3a5c 0%,#2563a8 100%);
+  color:#fff;padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)
+}
+.header-left{display:flex;align-items:center;gap:10px;min-width:0}
+.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:7px 12px;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;white-space:nowrap;flex-shrink:0}
+.header-title h1{font-size:16px;font-weight:800;line-height:1.2}
+.header-title p{font-size:11px;opacity:.75;line-height:1.3}
+.header-btns{display:flex;gap:6px;flex-shrink:0}
+.btn{border:none;border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;white-space:nowrap;transition:opacity .2s}
+.btn:active{opacity:.75}
+.btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ─── CONTAINER ─── */
+.page{max-width:1100px;margin:0 auto;padding:12px}
+
+/* ─── IMPORT CARD ─── */
+.import-card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.card-title{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:12px}
+.dropzone{border:2px dashed #b8c8d8;border-radius:12px;padding:26px 16px;text-align:center;cursor:pointer;transition:all .25s;background:#f8fafc}
+.dropzone:hover,.dropzone.drag-over{border-color:var(--primary);background:#eff6ff}
+.dz-icon{font-size:38px}
+.dz-text{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.6}
+.dz-text strong{color:var(--primary)}
+.file-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:4px 12px;font-size:12px;color:#1d4ed8;font-weight:600}
+.chip-x{cursor:pointer;font-size:15px;line-height:1;color:#6b7280;font-weight:400}
+.import-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.badge{border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff}
+.badge-gray{background:var(--primary)}
+.badge-a{background:var(--amber)}
+.badge-b{background:var(--green)}
+.badge-c{background:var(--blue)}
+.btn-clear{background:#fee2e2;color:#991b1b;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif}
+
+/* ─── KPI ROW ─── */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media(min-width:500px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.kpi-row{grid-template-columns:repeat(5,1fr)}}
+.kpi{background:var(--card);border-radius:12px;padding:14px 12px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center;border-top:4px solid var(--border)}
+.kpi.k-oee{border-color:var(--purple)}
+.kpi.k-av{border-color:var(--green)}
+.kpi.k-ql{border-color:var(--blue)}
+.kpi.k-j{border-color:var(--amber)}
+.kpi.k-sr{border-color:var(--red)}
+.kpi-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kpi-val{font-size:26px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.c-good{color:var(--green)}.c-warn{color:var(--amber)}.c-bad{color:var(--red)}.c-n{color:var(--primary)}
+
+/* ─── CHART GRID ─── */
+.chart-full{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:12px}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}
+@media(min-width:680px){.chart-grid{grid-template-columns:1fr 1fr}}
+.chart-box{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.chart-hdr{font-size:13px;font-weight:800;color:var(--primary);margin-bottom:12px}
+.chart-body{position:relative;height:220px}
+.chart-body.tall{height:280px}
+
+/* ─── MACHINE CARDS ─── */
+.mach-sec-title{font-size:14px;font-weight:800;color:var(--primary);margin-bottom:10px}
+.mach-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+@media(min-width:540px){.mach-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1000px){.mach-grid{grid-template-columns:repeat(3,1fr)}}
+.mach-card{background:var(--card);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.mach-img-wrap{height:160px;background:linear-gradient(135deg,#1a3a5c,#2563a8);position:relative;cursor:pointer;overflow:hidden}
+.mach-img{width:100%;height:100%;object-fit:cover}
+.mach-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.7);gap:6px}
+.mach-ph .icon{font-size:48px}
+.mach-ph .lbl{font-size:12px}
+.upload-hint{position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;border-radius:6px;padding:3px 8px}
+.mach-body{padding:14px}
+.mach-name{font-size:17px;font-weight:800;color:var(--primary);margin-bottom:4px}
+.mach-jobs{font-size:12px;color:var(--muted);margin-bottom:12px}
+.mach-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px}
+.ms-val{font-size:19px;font-weight:800}
+.ms-lbl{font-size:10px;color:var(--muted);text-transform:uppercase}
+.ms-bar{height:5px;background:#e5e7eb;border-radius:99px;margin-top:4px;overflow:hidden}
+.ms-fill{height:100%;border-radius:99px;transition:width .6s}
+
+/* ─── TABLE ─── */
+.tbl-card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:14px}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.tbl-filters{display:flex;gap:8px;flex-wrap:wrap}
+.tbl-filters select{padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-family:'Sarabun',sans-serif;font-size:13px;background:var(--card)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px}
+th{background:#f8fafc;padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
+tr:hover td{background:#fafbfc}
+.type-pill{border-radius:4px;padding:2px 8px;font-size:11px;font-weight:800}
+.tp-a{background:#fef3c7;color:#92400e}
+.tp-b{background:#d1fae5;color:#065f46}
+.tp-c{background:#dbeafe;color:#1e40af}
+.mini-bar{height:5px;background:#e5e7eb;border-radius:99px;margin-top:2px;width:70px;overflow:hidden}
+.mini-fill{height:100%;border-radius:99px}
+
+/* ─── EXPORT BAR ─── */
+.export-bar{background:var(--card);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.export-label{font-size:13px;font-weight:700;color:var(--primary);flex:1;min-width:80px}
+.btn-html{background:#3b82f6;color:#fff}
+.btn-pdf{background:#6b7280;color:#fff}
+
+/* ─── EMPTY STATE ─── */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-ico{font-size:56px;margin-bottom:12px}
+.empty-title{font-size:18px;font-weight:800;color:var(--primary);margin-bottom:6px}
+.empty-desc{font-size:14px;line-height:1.7}
+
+/* ─── PRINT ─── */
+@media print{
+  .app-header .header-btns,.back-btn,.import-card,.export-bar,.upload-hint{display:none!important}
+  body{background:#fff}
+  .page{max-width:100%;padding:0}
+  .chart-full,.chart-box,.mach-card,.kpi{box-shadow:none;border:1px solid #e5e7eb}
+  .kpi-row,.chart-grid,.mach-grid{page-break-inside:avoid}
+  @page{margin:15mm}
+}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="header-left">
+    <a href="index.html" class="back-btn">← หลัก</a>
+    <div class="header-title">
+      <h1>📊 OEE Dashboard</h1>
+      <p>นำ CSV มารวมวิเคราะห์</p>
+    </div>
+  </div>
+  <div class="header-btns">
+    <button class="btn btn-ghost" onclick="doPrint()">🖨️ PDF</button>
+    <button class="btn btn-accent" id="btnHtml" onclick="exportHTML()" disabled>💾 HTML</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- IMPORT -->
+  <div class="import-card">
+    <div class="card-title">📂 นำเข้าไฟล์ CSV</div>
+    <div class="dropzone" id="dz" onclick="document.getElementById('fi').click()">
+      <div class="dz-icon">📁</div>
+      <div class="dz-text">
+        <strong>คลิกเพื่อเลือกไฟล์</strong> หรือลากมาวาง<br>
+        รองรับหลายไฟล์พร้อมกัน · Export จากหน้าหลัก หรือ Form A/B/C ได้ทั้งคู่
+      </div>
+    </div>
+    <input type="file" id="fi" accept=".csv" multiple style="display:none" onchange="onFiles(this.files)">
+    <div class="file-chips" id="chips"></div>
+    <div class="import-meta hidden" id="imeta">
+      <span class="badge badge-gray" id="mTotal">0</span>
+      <span class="badge badge-a" id="mA">A:0</span>
+      <span class="badge badge-b" id="mB">B:0</span>
+      <span class="badge badge-c" id="mC">C:0</span>
+      <button class="btn-clear" onclick="clearAll()">🗑️ ล้างทั้งหมด</button>
+    </div>
+  </div>
+
+  <!-- EMPTY -->
+  <div id="emptyState">
+    <div class="empty">
+      <div class="empty-ico">📊</div>
+      <div class="empty-title">ยังไม่มีข้อมูล</div>
+      <div class="empty-desc">
+        Export CSV จากหน้า OEE Forms แล้วนำมาวางที่นี่<br>
+        รองรับ Type A, B, C พร้อมกัน · ได้หลายไฟล์พร้อมกัน
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash" class="hidden">
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi k-oee"><div class="kpi-lbl">OEE เฉลี่ย</div><div class="kpi-val" id="kOEE">—</div><div class="kpi-sub">Overall Effectiveness</div></div>
+      <div class="kpi k-av"><div class="kpi-lbl">Availability</div><div class="kpi-val" id="kAv">—</div><div class="kpi-sub">เครื่องทำงานได้จริง</div></div>
+      <div class="kpi k-ql"><div class="kpi-lbl">Quality</div><div class="kpi-val" id="kQl">—</div><div class="kpi-sub">อัตราของดี</div></div>
+      <div class="kpi k-j"><div class="kpi-val c-n" id="kJobs" style="margin-top:12px">0</div><div class="kpi-lbl" style="margin-top:2px">Jobs บันทึก</div><div class="kpi-sub" id="kDays">— วัน</div></div>
+      <div class="kpi k-sr"><div class="kpi-lbl">Setup Ratio</div><div class="kpi-val" id="kSR">—</div><div class="kpi-sub">เวลา Setup ÷ Job</div></div>
+    </div>
+
+    <!-- OEE TREND -->
+    <div class="chart-full">
+      <div class="chart-hdr">📈 Availability % Trend ตามวัน (แยกตามเครื่อง)</div>
+      <div class="chart-body tall"><canvas id="cTrend"></canvas></div>
+    </div>
+
+    <!-- ROW 1 -->
+    <div class="chart-grid">
+      <div class="chart-box">
+        <div class="chart-hdr">🏭 Availability / Quality / OEE ต่อเครื่อง</div>
+        <div class="chart-body"><canvas id="cMach"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-hdr">⚙️ สาเหตุที่หยุดเครื่อง (จาก Remarks)</div>
+        <div class="chart-body"><canvas id="cDown"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div class="chart-grid">
+      <div class="chart-box">
+        <div class="chart-hdr">🔧 Setup Ratio % เฉลี่ยต่อเครื่อง</div>
+        <div class="chart-body"><canvas id="cSetup"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-hdr">📋 Jobs แยกตาม Type</div>
+        <div class="chart-body"><canvas id="cType"></canvas></div>
+      </div>
+    </div>
+
+    <!-- MACHINE CARDS -->
+    <div class="mach-sec-title">🏭 สรุปตามเครื่องจักร — คลิกรูปเพื่ออัพโหลดภาพเครื่อง</div>
+    <div class="mach-grid" id="machGrid"></div>
+
+    <!-- EXPORT -->
+    <div class="export-bar">
+      <div class="export-label">📤 Export ผลลัพธ์</div>
+      <button class="btn btn-html" onclick="exportHTML()">💾 Export เป็น HTML (เปิดได้ทุก device)</button>
+      <button class="btn btn-pdf" onclick="doPrint()">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="tbl-card">
+      <div class="tbl-header">
+        <div style="font-size:14px;font-weight:800;color:var(--primary)">📋 รายการทั้งหมด</div>
+        <div class="tbl-filters">
+          <select id="fMach" onchange="renderTable()">
+            <option value="">เครื่องทั้งหมด</option>
+          </select>
+          <select id="fType" onchange="renderTable()">
+            <option value="">Type ทั้งหมด</option>
+            <option>A</option><option>B</option><option>C</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>วันที่</th><th>เครื่อง</th><th>Type</th><th>Job No</th><th>ชิ้นงาน</th>
+            <th>Setup(นาที)</th><th>Availability%</th><th>Quality%</th><th>OEE%</th>
+          </tr></thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /dash -->
+</div><!-- /page -->
+
+<!-- hidden image input -->
+<input type="file" id="imgInput" accept="image/*" style="display:none">
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let records = [];      // normalized records
+let fileNames = [];    // already-loaded filenames (dedup)
+let chartInst = {};    // Chart.js instances
+let machImgs = {};     // machine → base64 image
+
+// ═══════════════════════════════════════════════
+//  CSV PARSER
+// ═══════════════════════════════════════════════
+function parseLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === ',' && !inQ) { out.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');           // strip BOM
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const v = parseLine(lines[i]);
+    if (v.every(c => !c)) continue;
+    const obj = {};
+    headers.forEach((h, idx) => obj[h] = (v[idx] || ''));
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// Flexible column lookup — strip non-alphanum, lowercase
+function col(row, ...keys) {
+  const n = s => s.toLowerCase().replace(/[^a-zก-ฮ]/g, '');
+  const rowNorm = {};
+  Object.keys(row).forEach(k => rowNorm[n(k)] = row[k]);
+  for (const k of keys) {
+    const v = rowNorm[n(k)];
+    if (v !== undefined && v !== '') return v;
+  }
+  return undefined;
+}
+
+function numCol(row, ...keys) {
+  const v = col(row, ...keys);
+  const f = parseFloat(v);
+  return isNaN(f) ? null : f;
+}
+
+function normalize(row) {
+  // Type — index.html export has 'Type' column; fallback: detect from row keys
+  let type = (col(row, 'Type', 'type') || '').toUpperCase();
+  if (!['A','B','C'].includes(type)) {
+    const keys = Object.keys(row).join(' ').toLowerCase();
+    if (keys.includes('qualityresult') || keys.includes('esttime')) type = 'C';
+    else if (keys.includes('stdct') || keys.includes('batchno')) type = 'B';
+    else type = 'A';
+  }
+
+  // Quality — for Type C: PASS=100, FAIL=0
+  let quality = numCol(row, 'Quality%/Status', 'Quality%', 'Quality(%)', 'quality');
+  if (quality === null) {
+    const qs = (col(row, 'Quality%/Status', 'QualityResult', 'qualityresult') || '').toUpperCase();
+    if (qs === 'PASS') quality = 100;
+    else if (qs === 'FAIL') quality = 0;
+  }
+
+  // Downtime/stop reasons from Remarks or dedicated column
+  const remarks = (col(row, 'Remarks', 'remarks', 'StopReasons', 'stopreasons') || '').replace(/^"|"$/g,'');
+
+  return {
+    type,
+    date:      col(row, 'วันที่', 'Date', 'date') || '',
+    time:      col(row, 'เวลา', 'Time', 'time') || '',
+    machine:   col(row, 'เครื่อง', 'Machine', 'machine') || 'M?',
+    observer:  col(row, 'Observer', 'observer') || '',
+    jobNo:     col(row, 'Job No', 'JobNo', 'jobno') || '',
+    partName:  col(row, 'ชิ้นงาน', 'PartName', 'partname') || '',
+    setupTime: numCol(row, 'SetupTime(min)', 'SetupTime', 'setuptime'),
+    runTime:   numCol(row, 'RunTime(min)', 'RunTime', 'runtime'),
+    downtime:  numCol(row, 'Downtime(min)', 'Downtime', 'downtime'),
+    setupRatio:  numCol(row, 'SetupRatio%', 'SetupRatio(%)', 'setupratio'),
+    availability: numCol(row, 'Availability%', 'Availability(%)', 'availability'),
+    quality,
+    oee:       numCol(row, 'OEE%', 'OEE(%)', 'oee'),
+    remarks
+  };
+}
+
+// ═══════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════
+function onFiles(files) {
+  const promises = Array.from(files).map(f =>
+    new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => res({ name: f.name, text: e.target.result });
+      r.readAsText(f, 'UTF-8');
+    })
+  );
+  Promise.all(promises).then(results => {
+    results.forEach(({ name, text }) => {
+      if (fileNames.includes(name)) return;
+      fileNames.push(name);
+      const rows = parseCSV(text);
+      rows.forEach(row => records.push(normalize(row)));
+    });
+    document.getElementById('fi').value = '';
+    refresh();
+  });
+}
+
+function clearAll() {
+  records = []; fileNames = [];
+  Object.values(chartInst).forEach(c => c && c.destroy());
+  chartInst = {};
+  document.getElementById('chips').innerHTML = '';
+  document.getElementById('imeta').classList.add('hidden');
+  document.getElementById('dash').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('btnHtml').disabled = true;
+}
+
+// ═══════════════════════════════════════════════
+//  DROPZONE
+// ═══════════════════════════════════════════════
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  onFiles(e.dataTransfer.files);
+});
+
+// ═══════════════════════════════════════════════
+//  MAIN REFRESH
+// ═══════════════════════════════════════════════
+function refresh() {
+  if (!records.length) return;
+
+  // File chips
+  document.getElementById('chips').innerHTML = fileNames.map((n, i) =>
+    `<div class="chip">📄 ${n}<span class="chip-x" title="ลบออก" onclick="removeFile(${i})">×</span></div>`
+  ).join('');
+
+  // Badges
+  const tc = { A:0, B:0, C:0 };
+  records.forEach(r => tc[r.type] = (tc[r.type]||0)+1);
+  document.getElementById('mTotal').textContent = `${records.length} records`;
+  document.getElementById('mA').textContent = `A: ${tc.A}`;
+  document.getElementById('mB').textContent = `B: ${tc.B}`;
+  document.getElementById('mC').textContent = `C: ${tc.C}`;
+  document.getElementById('imeta').classList.remove('hidden');
+
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('dash').classList.remove('hidden');
+  document.getElementById('btnHtml').disabled = false;
+
+  renderKPIs();
+  renderTrend();
+  renderMachChart();
+  renderDownChart();
+  renderSetupChart();
+  renderTypeChart();
+  renderMachCards();
+  renderTable();
+  refreshMachFilter();
+}
+
+function removeFile(idx) {
+  // Can't track per-file → prompt to clear & re-import
+  if (confirm(`ลบ "${fileNames[idx]}" ออก?\n(ระบบจะ clear ทั้งหมดแล้ว import ใหม่)`)) {
+    clearAll();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function avg(arr) {
+  const v = arr.filter(x => x !== null && !isNaN(x));
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+}
+function pct(v) { return v !== null ? v.toFixed(1)+'%' : 'N/A'; }
+function colorClass(v, good, bad) {
+  if (v === null) return 'c-n';
+  return v >= good ? 'c-good' : v <= bad ? 'c-bad' : 'c-warn';
+}
+function barColor(v, good, bad) {
+  if (v === null) return '#e5e7eb';
+  return v >= good ? '#10b981' : v <= bad ? '#ef4444' : '#f59e0b';
+}
+function uniq(arr) { return [...new Set(arr)].sort(); }
+
+// ═══════════════════════════════════════════════
+//  KPIs
+// ═══════════════════════════════════════════════
+function renderKPIs() {
+  const set = (id, v, good, bad) => {
+    const el = document.getElementById(id);
+    el.textContent = pct(v);
+    el.className = 'kpi-val ' + colorClass(v, good, bad);
+  };
+  set('kOEE', avg(records.map(r=>r.oee)), 65, 40);
+  set('kAv',  avg(records.map(r=>r.availability)), 70, 50);
+  set('kQl',  avg(records.map(r=>r.quality)), 95, 85);
+  const avgSR = avg(records.map(r=>r.setupRatio));
+  const srEl = document.getElementById('kSR');
+  srEl.textContent = pct(avgSR);
+  srEl.className = 'kpi-val ' + (avgSR===null?'c-n': avgSR<15?'c-good': avgSR<25?'c-warn':'c-bad');
+  document.getElementById('kJobs').textContent = records.length;
+  const days = uniq(records.map(r=>r.date).filter(Boolean)).length;
+  document.getElementById('kDays').textContent = `${days} วัน`;
+}
+
+// ═══════════════════════════════════════════════
+//  CHART HELPER
+// ═══════════════════════════════════════════════
+const PALETTE = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899'];
+const FONT = { family: "'Sarabun', sans-serif" };
+
+function mkChart(id, config) {
+  if (chartInst[id]) chartInst[id].destroy();
+  chartInst[id] = new Chart(document.getElementById(id).getContext('2d'), config);
+}
+
+// ═══════════════════════════════════════════════
+//  TREND CHART
+// ═══════════════════════════════════════════════
+function renderTrend() {
+  const machines = uniq(records.map(r=>r.machine));
+  const dates = uniq(records.map(r=>r.date).filter(Boolean));
+
+  const datasets = machines.map((m, i) => {
+    const c = PALETTE[i % PALETTE.length];
+    return {
+      label: m + ' — Avail%',
+      data: dates.map(d => {
+        const v = records.filter(r=>r.machine===m && r.date===d && r.availability!==null).map(r=>r.availability);
+        return v.length ? (v.reduce((a,b)=>a+b)/v.length).toFixed(1) : null;
+      }),
+      borderColor: c, backgroundColor: c+'28',
+      tension: 0.35, fill: true, spanGaps: true, pointRadius: 4, borderWidth: 2
+    };
+  });
+
+  // OEE dashed line (where available)
+  const oeeByDate = {};
+  records.forEach(r => { if (r.date && r.oee!==null) { (oeeByDate[r.date]||=[]).push(r.oee); }});
+  if (Object.keys(oeeByDate).length) {
+    datasets.push({
+      label: 'OEE% รวม',
+      data: dates.map(d => { const v=oeeByDate[d]||[]; return v.length?(v.reduce((a,b)=>a+b)/v.length).toFixed(1):null; }),
+      borderColor: '#8b5cf6', backgroundColor: 'transparent',
+      tension: 0.35, fill: false, borderDash: [6,4], spanGaps: true, pointRadius: 5, borderWidth: 2.5
+    });
+  }
+
+  mkChart('cTrend', {
+    type: 'line', data: { labels: dates, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: FONT, boxWidth: 14, padding: 10 } } },
+      scales: {
+        y: { min:0, max:100, ticks: { callback: v=>v+'%', font: FONT } },
+        x: { ticks: { font: { ...FONT, size: 11 }, maxRotation: 45 } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  MACHINE BAR CHART
+// ═══════════════════════════════════════════════
+function renderMachChart() {
+  const machines = uniq(records.map(r=>r.machine));
+  const avail   = machines.map(m => avg(records.filter(r=>r.machine===m).map(r=>r.availability)));
+  const quality = machines.map(m => avg(records.filter(r=>r.machine===m).map(r=>r.quality)));
+  const oee     = machines.map(m => avg(records.filter(r=>r.machine===m).map(r=>r.oee)));
+
+  const ds = [
+    { label:'Availability%', data: avail.map(v=>v?.toFixed(1)??0),  backgroundColor:'#10b98188', borderColor:'#10b981', borderWidth:2 },
+    { label:'Quality%',      data: quality.map(v=>v?.toFixed(1)??0), backgroundColor:'#3b82f688', borderColor:'#3b82f6', borderWidth:2 },
+  ];
+  if (oee.some(v=>v!==null))
+    ds.push({ label:'OEE%', data: oee.map(v=>v?.toFixed(1)??0), backgroundColor:'#8b5cf688', borderColor:'#8b5cf6', borderWidth:2 });
+
+  mkChart('cMach', {
+    type: 'bar', data: { labels: machines, datasets: ds },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: FONT, boxWidth: 14 } } },
+      scales: {
+        y: { min:0, max:100, ticks: { callback: v=>v+'%', font: FONT } },
+        x: { ticks: { font: FONT } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  DOWNTIME / REMARKS CHART
+// ═══════════════════════════════════════════════
+function renderDownChart() {
+  const cnt = {};
+  const keywords = ['รอ material','เปลี่ยนมีด','เครื่องขัดข้อง','ปรับตั้ง','รอพนักงาน','อื่นๆ','Other','Breakdown','Setup','Wait'];
+
+  records.forEach(r => {
+    if (!r.remarks) return;
+    const rem = r.remarks.toLowerCase();
+    let matched = false;
+    keywords.forEach(k => {
+      if (rem.includes(k.toLowerCase())) { cnt[k]=(cnt[k]||0)+1; matched=true; }
+    });
+    if (!matched && r.downtime && r.downtime > 0) cnt['มี Downtime (ไม่ระบุ)']=(cnt['มี Downtime (ไม่ระบุ)']||0)+1;
+  });
+
+  const sorted = Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const labels = sorted.map(([k])=>k);
+  const data   = sorted.map(([,v])=>v);
+
+  if (!labels.length) { labels.push('ไม่มีข้อมูล Downtime'); data.push(1); }
+
+  mkChart('cDown', {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: PALETTE.map(c=>c+'bb'),
+        borderColor: PALETTE,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'right', labels: { font: { ...FONT, size:11 }, boxWidth:14, padding:10 } } }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  SETUP RATIO CHART
+// ═══════════════════════════════════════════════
+function renderSetupChart() {
+  const machines = uniq(records.map(r=>r.machine));
+  const data = machines.map(m => {
+    const v = avg(records.filter(r=>r.machine===m).map(r=>r.setupRatio));
+    return v!==null ? parseFloat(v.toFixed(1)) : 0;
+  });
+
+  mkChart('cSetup', {
+    type: 'bar',
+    data: {
+      labels: machines,
+      datasets: [{
+        label: 'Setup Ratio %',
+        data,
+        backgroundColor: data.map(v => v<15?'#10b98188': v<25?'#f59e0b88':'#ef444488'),
+        borderColor:     data.map(v => v<15?'#10b981': v<25?'#f59e0b':'#ef4444'),
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display:false },
+        annotation: {}
+      },
+      scales: {
+        x: { min:0, ticks: { callback:v=>v+'%', font: FONT } },
+        y: { ticks: { font: FONT } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  TYPE PIE CHART
+// ═══════════════════════════════════════════════
+function renderTypeChart() {
+  const tc = {A:0,B:0,C:0};
+  records.forEach(r => tc[r.type]=(tc[r.type]||0)+1);
+
+  mkChart('cType', {
+    type: 'pie',
+    data: {
+      labels: ['Type A — Job Shop','Type B — Repeat','Type C — Single Piece'],
+      datasets: [{
+        data: [tc.A, tc.B, tc.C],
+        backgroundColor: ['#f59e0bbb','#10b981bb','#3b82f6bb'],
+        borderColor: ['#f59e0b','#10b981','#3b82f6'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'bottom', labels: { font: FONT, padding:12 } } }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  MACHINE CARDS
+// ═══════════════════════════════════════════════
+function renderMachCards() {
+  const machines = uniq(records.map(r=>r.machine));
+  document.getElementById('machGrid').innerHTML = machines.map(m => {
+    const recs = records.filter(r=>r.machine===m);
+    const av  = avg(recs.map(r=>r.availability));
+    const ql  = avg(recs.map(r=>r.quality));
+    const oe  = avg(recs.map(r=>r.oee));
+    const sr  = avg(recs.map(r=>r.setupRatio));
+    const img = machImgs[m];
+
+    const imgHtml = img
+      ? `<img class="mach-img" src="${img}" alt="${m}">`
+      : `<div class="mach-ph"><div class="icon">⚙️</div><div class="lbl">แตะเพิ่มรูป ${m}</div></div>`;
+
+    const stat = (val, good, bad) => {
+      const c = barColor(val, good, bad);
+      const w = Math.min(100, Math.max(0, val||0));
+      return `<div class="ms-fill" style="width:${w}%;background:${c}"></div>`;
+    };
+
+    const srInfo = sr!==null ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">Setup Ratio: <strong style="color:${sr<15?'#10b981':sr<25?'#f59e0b':'#ef4444'}">${sr.toFixed(1)}%</strong></div>` : '';
+
+    return `
+<div class="mach-card">
+  <div class="mach-img-wrap" onclick="pickImg('${m}')">
+    ${imgHtml}
+    <div class="upload-hint">📸 เปลี่ยนรูป</div>
+  </div>
+  <div class="mach-body">
+    <div class="mach-name">🏭 ${m}</div>
+    <div class="mach-jobs">${recs.length} Jobs · ${uniq(recs.map(r=>r.date).filter(Boolean)).length} วัน</div>
+    <div class="mach-stats">
+      <div>
+        <div class="ms-val ${colorClass(av,70,50)}">${pct(av)}</div>
+        <div class="ms-lbl">Avail</div>
+        <div class="ms-bar">${stat(av,70,50)}</div>
+      </div>
+      <div>
+        <div class="ms-val ${colorClass(ql,95,85)}">${pct(ql)}</div>
+        <div class="ms-lbl">Quality</div>
+        <div class="ms-bar">${stat(ql,95,85)}</div>
+      </div>
+      <div>
+        <div class="ms-val ${colorClass(oe,65,40)}">${pct(oe)}</div>
+        <div class="ms-lbl">OEE</div>
+        <div class="ms-bar">${stat(oe,65,40)}</div>
+      </div>
+    </div>
+    ${srInfo}
+  </div>
+</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  MACHINE IMAGE UPLOAD
+// ═══════════════════════════════════════════════
+function pickImg(machine) {
+  const inp = document.getElementById('imgInput');
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      machImgs[machine] = ev.target.result;
+      try { localStorage.setItem('mi_'+machine, ev.target.result); } catch(e){}
+      renderMachCards();
+    };
+    rd.readAsDataURL(f);
+    inp.value = '';
+  };
+  inp.click();
+}
+
+(function loadSavedImgs() {
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('mi_')) machImgs[k.slice(3)] = localStorage.getItem(k);
+  }
+})();
+
+// ═══════════════════════════════════════════════
+//  TABLE
+// ═══════════════════════════════════════════════
+function refreshMachFilter() {
+  const sel = document.getElementById('fMach');
+  const cur = sel.value;
+  const machines = uniq(records.map(r=>r.machine));
+  sel.innerHTML = `<option value="">เครื่องทั้งหมด</option>` +
+    machines.map(m=>`<option${m===cur?' selected':''}>${m}</option>`).join('');
+}
+
+function renderTable() {
+  const fm = document.getElementById('fMach').value;
+  const ft = document.getElementById('fType').value;
+  let recs = records;
+  if (fm) recs = recs.filter(r=>r.machine===fm);
+  if (ft) recs = recs.filter(r=>r.type===ft);
+
+  const pill = t => `<span class="type-pill tp-${t.toLowerCase()}">Type ${t}</span>`;
+  const bar = (v, good, bad) => {
+    const c = barColor(v, good, bad);
+    const w = Math.min(100, Math.max(0, v||0));
+    return `<div class="mini-bar"><div class="mini-fill" style="width:${w}%;background:${c}"></div></div>`;
+  };
+
+  document.getElementById('tBody').innerHTML = recs.length
+    ? recs.map(r=>`<tr>
+        <td>${r.date||'—'}</td>
+        <td>${r.machine}</td>
+        <td>${pill(r.type)}</td>
+        <td>${r.jobNo||'—'}</td>
+        <td>${r.partName||'—'}</td>
+        <td>${r.setupTime!==null ? r.setupTime.toFixed(0)+' นาที':'—'}</td>
+        <td>${pct(r.availability)}${bar(r.availability,70,50)}</td>
+        <td>${pct(r.quality)}</td>
+        <td>${pct(r.oee)}${bar(r.oee,65,40)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">ไม่มีข้อมูลตาม filter</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT HTML
+// ═══════════════════════════════════════════════
+function exportHTML() {
+  if (!records.length) return;
+
+  // Snapshot all charts
+  const snap = {};
+  ['cTrend','cMach','cDown','cSetup','cType'].forEach(id => {
+    const cv = document.getElementById(id);
+    if (cv) snap[id] = cv.toDataURL('image/png');
+  });
+
+  const oee  = document.getElementById('kOEE').textContent;
+  const av   = document.getElementById('kAv').textContent;
+  const ql   = document.getElementById('kQl').textContent;
+  const jobs = document.getElementById('kJobs').textContent;
+  const sr   = document.getElementById('kSR').textContent;
+  const days = document.getElementById('kDays').textContent;
+
+  const machines = uniq(records.map(r=>r.machine));
+  const machHTML = machines.map(m => {
+    const recs = records.filter(r=>r.machine===m);
+    const a=avg(recs.map(r=>r.availability)), q=avg(recs.map(r=>r.quality)), o=avg(recs.map(r=>r.oee));
+    const img = machImgs[m];
+    const imgTag = img
+      ? `<img src="${img}" style="width:100%;height:150px;object-fit:cover;display:block">`
+      : `<div style="height:150px;background:linear-gradient(135deg,#1a3a5c,#2563a8);display:flex;align-items:center;justify-content:center;font-size:44px">⚙️</div>`;
+    const bar = (v,good,bad) => {
+      const c = barColor(v,good,bad), w=Math.min(100,Math.max(0,v||0));
+      return `<div style="height:5px;background:#e5e7eb;border-radius:4px;margin-top:3px"><div style="height:5px;width:${w}%;background:${c};border-radius:4px"></div></div>`;
+    };
+    return `<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+      ${imgTag}
+      <div style="padding:14px">
+        <div style="font-size:16px;font-weight:800;color:#1a3a5c;margin-bottom:4px">🏭 ${m}</div>
+        <div style="font-size:12px;color:#718096;margin-bottom:12px">${recs.length} Jobs</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+          ${[['Avail',a,70,50],['Quality',q,95,85],['OEE',o,65,40]].map(([lbl,v,g,b])=>`
+            <div><div style="font-size:18px;font-weight:800;color:${v!==null&&v>=g?'#10b981':v!==null&&v<=b?'#ef4444':'#f59e0b'}">${pct(v)}</div><div style="font-size:10px;color:#718096">${lbl}</div>${bar(v,g,b)}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const now = new Date().toLocaleString('th-TH');
+  const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OEE Dashboard — ${now}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:#f0f4f8;color:#1a202c}
+.hdr{background:linear-gradient(135deg,#1a3a5c,#2563a8);color:#fff;padding:20px;text-align:center}
+.hdr h1{font-size:22px;font-weight:800}
+.hdr p{font-size:13px;opacity:.8;margin-top:4px}
+.wrap{max-width:960px;margin:0 auto;padding:14px}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.kpi-l{font-size:10px;font-weight:700;color:#718096;text-transform:uppercase}
+.kpi-v{font-size:22px;font-weight:800;color:#1a3a5c;margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.card{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.card h3{font-size:13px;font-weight:800;color:#1a3a5c;margin-bottom:10px}
+.card img{width:100%;height:auto;border-radius:6px}
+.full{grid-column:1/3}
+.mach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
+.ft{text-align:center;font-size:12px;color:#718096;padding:16px;border-top:1px solid #e5e7eb;margin-top:8px}
+@media(max-width:600px){.kpi-row,.grid2{grid-template-columns:repeat(2,1fr)}.full{grid-column:auto}}
+@media print{body{background:#fff}.hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>📊 OEE Dashboard Report</h1>
+  <p>สร้างเมื่อ ${now} · ${jobs} Jobs · ${days}</p>
+</div>
+<div class="wrap">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-l">OEE เฉลี่ย</div><div class="kpi-v">${oee}</div></div>
+    <div class="kpi"><div class="kpi-l">Availability</div><div class="kpi-v">${av}</div></div>
+    <div class="kpi"><div class="kpi-l">Quality</div><div class="kpi-v">${ql}</div></div>
+    <div class="kpi"><div class="kpi-l">Jobs</div><div class="kpi-v">${jobs}</div></div>
+    <div class="kpi"><div class="kpi-l">Setup Ratio</div><div class="kpi-v">${sr}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card full"><h3>📈 Availability % Trend ตามวัน</h3><img src="${snap.cTrend||''}"></div>
+    <div class="card"><h3>🏭 Availability / Quality / OEE ต่อเครื่อง</h3><img src="${snap.cMach||''}"></div>
+    <div class="card"><h3>⚙️ สาเหตุที่หยุดเครื่อง</h3><img src="${snap.cDown||''}"></div>
+    <div class="card"><h3>🔧 Setup Ratio ต่อเครื่อง</h3><img src="${snap.cSetup||''}"></div>
+    <div class="card"><h3>📋 Job แยกตาม Type</h3><img src="${snap.cType||''}"></div>
+  </div>
+  <div style="font-size:14px;font-weight:800;color:#1a3a5c;margin-bottom:10px">🏭 สรุปตามเครื่องจักร</div>
+  <div class="mach-grid">${machHTML}</div>
+  <div class="ft">OEE Machine Monitor Phase 0 · รายงานนี้ไม่ต้องการ internet · ${now}</div>
+</div>
+</body>
+</html>`;
+
+  const b = new Blob([html], { type:'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = `OEE_Dashboard_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════
+//  PDF via PRINT
+// ═══════════════════════════════════════════════
+function doPrint() { window.print(); }
+</script>
+</body>
+</html>

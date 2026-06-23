@@ -1,0 +1,9 @@
+services:
+  - type: static_site
+    name: oee-machine-monitor
+    staticPublishPath: .
+    plan: free
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
