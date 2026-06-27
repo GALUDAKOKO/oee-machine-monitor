@@ -85,7 +85,17 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="form-row">
     <div class="form-group">
       <label>เครื่องจักร</label>
-      <select id="machine"><option value="M1">M1</option><option value="M2">M2</option></select>
+      <select id="machine">
+        <option value="M1">M1</option>
+        <option value="M2">M2</option>
+        <option value="M3">M3</option>
+        <option value="M4">M4</option>
+        <option value="M5">M5</option>
+        <option value="M6">M6</option>
+        <option value="M7">M7</option>
+        <option value="M8">M8</option>
+        <option value="M9">M9</option>
+        <option value="M10">M10</option></select>
     </div>
     <div class="form-group">
       <label>ผู้สังเกต</label>
@@ -246,18 +256,25 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 <script>
 const STORAGE_KEY='oee_records_b';
 const STATES={IDLE:'idle',SETUP:'setup',RUNNING:'running',STOPPED:'stopped',DONE:'done'};
-let state=STATES.IDLE,events=[],stopPairs=[],currentStop=null,lastEventTime=null;
+let state=STATES.IDLE,events=[],stopPairs=[],currentStop=null,lastEventTime=null,_timerIv=null;
 
 // Inject index.html into history so device back button (iPad/Android swipe) lands there
 history.replaceState({p:'index'},'','index.html');
 history.pushState({p:'form'},'',location.href);
 
 window.onload=()=>{
+      
+  // Wake Lock — กันหน้าจอดับขณะใช้งาน
+  (async function(){
+    let wl=null;
+    async function req(){try{if('wakeLock' in navigator)wl=await navigator.wakeLock.request('screen');}catch(e){}}
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')req();});
+    await req();
+  })();
   const now=new Date();
   document.getElementById('headerDate').textContent=now.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('observer').value=localStorage.getItem('oee_observer')||'';
   loadRecords();
-  setInterval(()=>{if(state!==STATES.IDLE&&state!==STATES.DONE&&lastEventTime)document.getElementById('timerDisplay').textContent=fmtDur(new Date()-lastEventTime);},1000);
 };
 document.getElementById('observer').addEventListener('change',function(){localStorage.setItem('oee_observer',this.value)});
 
@@ -287,6 +304,12 @@ function setStateUI(ns){
   bar.className=`state-bar ${ns}`;
   bar.textContent={idle:'⬤ รอเริ่ม (IDLE)',setup:'🔧 กำลัง Setup...',running:'▶ กำลัง Run...',stopped:'⏸ หยุด / Downtime',done:'✅ เสร็จแล้ว'}[ns];
   document.getElementById('timerDisplay').textContent='00:00:00';lastEventTime=new Date();
+  if(_timerIv) clearInterval(_timerIv);
+  if(ns!==STATES.IDLE&&ns!==STATES.DONE){
+    _timerIv=setInterval(()=>{
+      if(lastEventTime) document.getElementById('timerDisplay').textContent=fmtDur(Date.now()-lastEventTime.getTime());
+    },500);
+  }
 }
 function tapSetup(){if(state!==STATES.IDLE)return;const t=new Date();events.push({type:'SETUP_START',time:t});document.getElementById('tSetup').textContent=fmtTime(t);setStateUI(STATES.SETUP);document.getElementById('btnSetup').disabled=true;document.getElementById('btnRun').disabled=false;addLog('🔧','เริ่ม Setup',t);showToast('✓ Setup เริ่ม '+fmtTime(t));}
 function tapRun(){if(state!==STATES.SETUP&&state!==STATES.STOPPED)return;const t=new Date();events.push({type:'RUN_START',time:t});document.getElementById('tRun').textContent=fmtTime(t);setStateUI(STATES.RUNNING);document.getElementById('btnRun').disabled=true;document.getElementById('btnStop').disabled=false;document.getElementById('btnResume').disabled=true;document.getElementById('btnDone').disabled=false;addLog('▶️','เริ่ม Run',t);showToast('✓ Run เริ่ม '+fmtTime(t));}
